@@ -2,8 +2,11 @@
 
 A Telnet client for the Commodore 64 with a WiC64 (firmware 2.0.0 or later).
 
-Build with [ACME](https://sourceforge.net/projects/acme-crossass/): `make` gives
-`build/telnet.prg`.
+**Download:** [`telnet.prg`](https://github.com/huysmki/wic64-telnet/raw/main/telnet.prg)
+— copy it to a disk (or SD card) and `LOAD"TELNET.PRG",8` / `RUN`.
+
+To build it yourself with [ACME](https://sourceforge.net/projects/acme-crossass/):
+`make` gives `build/telnet.prg`.
 
 ## Terminal modes
 
