@@ -1,3 +1,4 @@
 build/
 original/
 .DS_Store
+/telnet.prg
