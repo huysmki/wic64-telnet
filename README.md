@@ -110,11 +110,21 @@ The list is stored in `telnet.cfg` on the drive the program was loaded from
 first as `telnet.tmp`, which then replaces `telnet.cfg`, so a failed save
 leaves the old list on the disk.
 
+## Credits and licence
+
+Based on the [WiC64 Simple Telnet Client](https://github.com/WiC64-Team/wic64-telnet)
+by Henning Liebenau, and built on his
+[WiC64 library](https://github.com/WiC64-Team/wic64-library) (`wic64.asm`,
+`wic64.h`, included unchanged). Both are under the BSD 2-Clause licence, and
+so is this program: see [`LICENSE.txt`](LICENSE.txt), which also applies
+to the `telnet.prg` download.
+
 ## Source layout
 
 | File | Contents |
 |------|----------|
 | `main.asm` | entry point, includes |
+| `wic64.asm`, `wic64.h` | WiC64 library by Henning Liebenau |
 | `net.asm` | TCP connection through the WiC64 |
 | `telnet.asm` | Telnet protocol and option negotiation |
 | `term.asm` | terminal modes, keyboard, cursor |
