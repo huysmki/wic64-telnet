@@ -206,7 +206,10 @@ term_key:
     lda #$1b
     jsr .emit
     lda #"["
-    jsr .emit
+    ldx ansi_app_cursor
+    beq +
+    lda #"O"                ; application cursor keys
++   jsr .emit
     lda .final
 
 ; Sends A to the server and echoes it if local echo is on.

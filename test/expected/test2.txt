@@ -1,0 +1,82 @@
+Screen:
+  |#----------#                            |
+  |# ANSI BBS #                            |
+  |#----------#                            |
+  |Colours: RGBRGB                         |
+  | Blue bar                               |
+  |Reverse normal                          |
+  |Blocks: ### ####                        |
+  |ASCII: #### _^# \ [] @                  |
+  |                                        |
+  |                   At row 10 col 20     |
+  |                                        |
+  |0123456789012345678901234567890123456789|
+  |wrapped                                 |
+  |ABEFGHIJ                                |
+  |AB  CDEFGHIJ                            |
+  |     FGHIJ                              |
+  |                                        |
+  |OSC skipped                             |
+  |                                        |
+  |Tab:    x       y                       |
+  |                                        |
+  |#--# # # #--# DEC                       |
+  |Type:                                   |
+  |                                        |
+  | cib.dyndns.org:64 ANSI         00:00:00|
+
+Screen codes and colours:
+   0 70404040404040404040406e20202020202020202020202020202020202020202020202020202020
+     777777777777ffffffffffffffffffffffffffff
+   1 5d20414e534920424253205d20202020202020202020202020202020202020202020202020202020
+     733333333337ffffffffffffffffffffffffffff
+   2 6d404040404040404040407d20202020202020202020202020202020202020202020202020202020
+     777777777777ffffffffffffffffffffffffffff
+   3 430f0c0f1512133a2052474252474220202020202020202020202020202020202020202020202020
+     fffffffff256adefffffffffffffffffffffffff
+   4 a0c28c9585a0828192a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0
+     6666666666666666666666666666666666666666
+   5 d2859685929385200e0f120d010c2020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   6 420c0f030b133a206666e6a062e261e1202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   7 41534349493a207475767a201f1e6a201c201b1d2000202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   8 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   9 20202020202020202020202020202020202020411420120f1720313020030f0c2032302020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  10 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  11 30313233343536373839303132333435363738393031323334353637383930313233343536373839
+     ffffffffffffffffffffffffffffffffffffffff
+  12 17120110100504202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  13 414245464748494a2020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  14 41422020434445464748494a20202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  15 2020202020464748494a202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  16 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  17 4f534320130b09101005042020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  18 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  19 5401023a202020201820202020202020192020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  20 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  21 7040406e205d205d206d40407d204445432020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  22 541910053a20a0202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  23 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  24 a0838982ae84998e848e93ae8f9287bab6b4a0c1ced3c9a0a0a0a0a0a0a0a0a0b0b0bab0b0bab0b0
+     cccccccccccccccccccccccccccccccccccccccc
+
+Sent (21 bytes):
+  1b 5b 31 30 3b 33 36 52 1b 5b 30 6e 61 42 1b 5b  .[10;36R.[0naB.[
+  41 1b 7f 0d 00                                   A....

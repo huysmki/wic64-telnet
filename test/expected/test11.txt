@@ -1,0 +1,80 @@
+Screen:
+  |\####_^# \####                          |
+  |      full blocks                       |
+  | iCE   blink                            |
+  |redbluegreygreen                        |
+  |yellowcyanmagentared                    |
+  |nine                                    |
+  |DCS:gone                                |
+  |SR:abcd                                 |
+  |REP:xxxxx                               |
+  |ED 3 keeps the screen                   |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  | cib.dyndns.org:64 ANSI         00:00:00|
+
+Screen codes and colours:
+   0 9cf5faf4f69f9eea209cf5faf4f62020202020202020202020202020202020202020202020202020
+     fffffffff66666ffffffffffffffffffffffffff
+   1 a0a0a020a02006150c0c20020c0f030b132020202020202020202020202020202020202020202020
+     ff6fffffffffffffffffffffffffffffffffffff
+   2 a089c3c5a020a0828c898e8ba0202020202020202020202020202020202020202020202020202020
+     eeeeefbbbbbbbfffffffffffffffffffffffffff
+   3 120504020c150507120519879285858e202020202020202020202020202020202020202020202020
+     aaaeeeeffffdddddffffffffffffffffffffffff
+   4 19050c0c0f170319010e0d0107050e14011205042020202020202020202020202020202020202020
+     77777733334444444aaaffffffffffffffffffff
+   5 8e898e85202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   6 4443533a070f0e052020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   7 53523a01020304202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   8 5245503a181818181820202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   9 45442033200b05051013201408052013031205050ea0202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  10 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  11 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  12 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  13 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  14 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  15 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  16 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  17 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  18 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  19 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  20 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  21 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  22 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  23 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  24 a0838982ae84998e848e93ae8f9287bab6b4a0c1ced3c9a0a0a0a0a0a0a0a0a0b0b0bab0b0bab0b0
+     cccccccccccccccccccccccccccccccccccccccc
+
+Sent (0 bytes):

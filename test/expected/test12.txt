@@ -1,0 +1,81 @@
+Screen:
+  |Main screen                             |
+  |title skipped                           |
+  |back                                    |
+  |                                        |
+  |         stays at 5;10                  |
+  |                                        |
+  |----------                              |
+  |                                        |
+  |$                                       |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  | cottonwoodbbs.dyn UTF-8        00:00:00|
+
+Screen codes and colours:
+   0 4d01090e2013031205050e2020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   1 1409140c0520130b0910100504202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   2 0201030b202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   3 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   4 202020202020202020131401191320011420353b3130202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   5 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   6 40404040404040404040202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   7 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   8 2420a020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   9 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  10 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  11 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  12 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  13 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  14 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  15 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  16 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  17 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  18 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  19 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  20 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  21 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  22 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  23 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  24 a0838f94948f8e978f8f84828293ae84998ea0d5d4c6adb8a0a0a0a0a0a0a0a0b0b0bab0b0bab0b0
+     cccccccccccccccccccccccccccccccccccccccc
+
+Sent (6 bytes):
+  1b 4f 41 1b 4f 48                                .OA.OH

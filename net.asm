@@ -87,8 +87,10 @@ net_poll:
 .poll_done:
     rts
 
-; Installed as the WiC64 store instruction: called with each received
-; byte in A, must preserve X and Y.
+; Not called: wic64_set_store_instruction copies this one 3-byte
+; instruction into the WiC64 receive loop, which then calls
+; telnet_receive with each received byte in A (it must preserve X and
+; Y). It has to be a jsr, and nothing after it is part of it.
 .deliver:
     jsr telnet_receive
 

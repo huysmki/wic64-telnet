@@ -28,7 +28,8 @@ SC_RIGHT_HALF  = $e1
 SC_SHADE       = $66
 SC_DARK_SHADE  = $e6
 
-; Slots that receive the missing ASCII characters
+; Slots that receive the missing ASCII characters (and, reversed, the
+; slots $80 higher, used for reverse video and coloured backgrounds)
 SC_BACKSLASH   = $1c   ; was £
 SC_CARET       = $1e   ; was ↑
 SC_UNDERSCORE  = $1f   ; was ←
@@ -84,9 +85,17 @@ charset_init:
     cpx #8
     bne -
     sty .index
+    lda zp_a                ; zp_b = the reversed copy, slot + $80
+    sta zp_b
+    lda zp_a+1
+    clc
+    adc #>($80 * 8)
+    sta zp_b+1
     ldy #7
 -   lda .row,y
     sta (zp_a),y
+    eor #$ff
+    sta (zp_b),y
     dey
     bpl -
     ldy .index

@@ -101,3 +101,4 @@ box_save_buffer  = BSS            ; 8 rows * (40 screen + 40 color)
 box_save_links   = BSS + $0280    ; 25 bytes
 net_response     = BSS + $0300    ; 256 bytes
 book_load_buffer = BSS + $0400    ; 1 KB
+alt_screen_buffer = BSS + $0800   ; 24 rows * (40 screen + 40 color)

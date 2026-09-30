@@ -170,13 +170,15 @@ test_keys:
 }
 
 !if SCENARIO = 8 {
-; Start-up with a saved address book on drive 8: just show the menu
+; Start-up with a saved address book on drive 8, then save it again
+; (replacing the file)
 test_rx:
     !byte 0
 test_rx_end:
 
 !align 255, 0
 test_keys:
+    !byte "S"
     !byte TK_END
 }
 
@@ -210,6 +212,57 @@ test_rx_end:
 !align 255, 0
 test_keys:
     !byte "1", TK_WAIT_RX
+    !byte TK_IDLE, 5
+    !byte TK_END
+}
+
+!if SCENARIO = 11 {
+; ANSI mode: reverse video and backgrounds, iCE colours, 256 and true
+; colours, too many parameters, strings, intermediate bytes, repeat
+test_rx:
+    !text ESC, "[2J"
+    !text ESC, "[7m", "\\|~{}_^`", ESC, "[0m ", ESC, "[44m", "\\|~{}", ESC, "[0m", 13, 10
+    !text ESC, "[44m", $db, $db, ESC, "[7m", $db, ESC, "[0m", " ", $db, " full blocks", 13, 10
+    !text ESC, "[5;44m", " iCE ", ESC, "[0m ", ESC, "[5m", " blink ", ESC, "[0m", 13, 10
+    !text ESC, "[38;5;196m", "red", ESC, "[38;5;21m", "blue", ESC, "[38;5;244m"
+    !text "grey", ESC, "[48;5;46m", "green", ESC, "[0m", 13, 10
+    !text ESC, "[38;2;255;255;0m", "yellow", ESC, "[38:2::0:255:255m", "cyan"
+    !text ESC, "[38:2:255:0:255m", "magenta", ESC, "[38:5:9m", "red", ESC, "[0m", 13, 10
+    !text ESC, "[1;2;3;4;5;6;7;8;1;31m", "nine", ESC, "[0m", 13, 10
+    !text "DCS:", ESC, "P$qm", ESC, "\\", "gone", 13, 10
+    !text "SR:ab", ESC, "[1 A", "cd", 13, 10
+    !text "REP:x", ESC, "[4b", 13, 10
+    !text ESC, "[3J", "ED 3 keeps the screen"
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte KEY_DOWN, "T"             ; server 2 -> ANSI
+    !byte KEY_RETURN
+    !byte TK_WAIT_RX
+    !byte TK_IDLE, 5
+    !byte TK_END
+}
+
+!if SCENARIO = 12 {
+; UTF-8 mode: ED 2 keeps the cursor, UTF-8 in a title, the alternate
+; screen, repeat, application cursor keys
+test_rx:
+    !text ESC, "[5;10H", ESC, "[2J", "stays at 5;10"
+    !text ESC, "[1;1H", "Main screen", 13, 10
+    !text ESC, "]0;Caf", $c3, $a9, " ", $e2, $98, $95, 7, "title skipped", 13, 10
+    !text ESC, "[?1049h", "Alternate screen", ESC, "[?1049l", "back"
+    !text ESC, "[7;1H", $e2, $94, $80, ESC, "[9b"
+    !text ESC, "[?1h"
+    !text ESC, "[9;1H", "$ "
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !text KEY_DOWN, KEY_DOWN, "T", "T"  ; server 3 -> UTF-8
+    !byte KEY_RETURN
+    !byte TK_WAIT_RX
+    !byte KEY_UP, KEY_HOME
     !byte TK_IDLE, 5
     !byte TK_END
 }

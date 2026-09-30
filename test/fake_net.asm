@@ -12,7 +12,9 @@
 ;   TK_FAIL, s      the next net_poll fails with WiC64 status s
 ;   TK_END          stop: sets TEST_DONE and returns no keys
 ;
-; TEST_DONE ($02) is 1 once the script has ended.
+; TEST_DONE ($02) is 1 once the script has ended; test_finished is
+; the routine that sets it and test_tx_pointer points just past the
+; last logged byte (both for tools/run_test.py).
 ;---------------------------------------------------------
 
 !zone fake_net {
@@ -56,6 +58,7 @@ net_send:
     sty .y
 .tx:
     sta TEST_TX_LOG
+test_tx_pointer = .tx + 1
     inc .tx+1
     bne +
     inc .tx+2
@@ -115,8 +118,7 @@ test_get_key:
     jsr .fetch
     cmp #TK_END
     bne +
-    lda #1
-    sta TEST_DONE
+    jsr test_finished
     dec .key+1              ; stay on TK_END
     lda #0
     rts
@@ -147,7 +149,10 @@ test_get_key:
 
 test_before_input:
     jsr .fetch
-    cmp #TK_TYPE
+    cmp #TK_END
+    bne +
+    jsr test_finished       ; the script ends with the input box open
++   cmp #TK_TYPE
     bne .not_type
     jsr .fetch
     tax
@@ -161,6 +166,11 @@ test_before_input:
     rts
 .not_type:
     dec .key+1
+    rts
+
+test_finished:
+    lda #1
+    sta TEST_DONE
     rts
 
 ; Returns the next script byte (script is < 256 bytes).

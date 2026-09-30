@@ -1,4 +1,4 @@
-# WiC64 Telnet Client 3.0
+# WiC64 Telnet Client 3.1
 
 A Telnet client for the Commodore 64 with a WiC64 (firmware 2.0.0 or later).
 
@@ -8,6 +8,17 @@ from the [latest release](https://github.com/huysmki/wic64-telnet/releases/lates
 
 To build it yourself with [ACME](https://sourceforge.net/projects/acme-crossass/):
 `make` gives `build/telnet.prg`.
+
+![The start screen with the address book](docs/screenshots/address-book.png)
+
+| PETSCII | PETSCII |
+|---------|---------|
+| <img src="docs/screenshots/petscii-retrocampus.png" width="384" alt="RetroCampus BBS in PETSCII mode"> | <img src="docs/screenshots/petscii-rapidfire.png" width="384" alt="Rapidfire BBS in PETSCII mode"> |
+| **ANSI** | **UTF-8** |
+| <img src="docs/screenshots/ansi-vertrauen.png" width="384" alt="Vertrauen, a Synchronet BBS, in ANSI mode"> | <img src="docs/screenshots/utf8-telehack.png" width="384" alt="Telehack in UTF-8 mode"> |
+
+*RetroCampus, Rapidfire, Vertrauen and Telehack, taken in VICE with its WiC64
+emulation.*
 
 ## Terminal modes
 
@@ -23,6 +34,13 @@ ANSI by itself when the server draws with ANSI escape codes (colours, cursor
 positioning, clearing). ANSI detection queries such as `ESC [ 5 n`, which
 some Commodore BBSes send at login, are ignored and left unanswered, so those
 BBSes stay in PETSCII. For a UTF-8 host, press `F7`, `M` once more.
+
+The C64 has one background colour, so a coloured ANSI background shows as
+reverse video in that colour. Blink shows as a bright background (iCE
+colours), which is what most PC BBS art means by it. 256-colour and true
+colour codes show as the nearest of the 16 ANSI colours. Full-screen Unix
+programs get an alternate screen (the screen comes back when vim or less
+exits) and application cursor keys when they ask for them.
 
 ## Keys
 
@@ -42,7 +60,7 @@ In ANSI and UTF-8 modes the keyboard sends ASCII:
 
 | C64 key            | Sends            |
 |--------------------|------------------|
-| cursor keys, `HOME`, `CLR` | `ESC [ A`–`D`, `ESC [ H`, `ESC [ F` |
+| cursor keys, `HOME`, `CLR` | `ESC [ A`–`D`, `ESC [ H`, `ESC [ F` (`ESC O …` when the host asks for application cursor keys) |
 | `←`                | ESC              |
 | `CTRL`+letter      | control code (e.g. CTRL+C, also CTRL+Q/S) |
 | `DEL`              | DEL (`$7F`)      |
@@ -70,8 +88,27 @@ connection was lost.
 
 ## Address book
 
+It comes with nine servers that were online when this version was made:
+
+| # | Server | Mode |
+|---|--------|------|
+| 1 | `8bit.hoyvision.com:6502` (8-Bit Playground) | PETSCII |
+| 2 | `cib.dyndns.org:6405` | PETSCII |
+| 3 | `cottonwoodbbs.dyndns.org:6502` | PETSCII |
+| 4 | `rapidfire.hopto.org:64128` | PETSCII |
+| 5 | `raveolution.hopto.org:64128` | PETSCII |
+| 6 | `bbs.fozztexx.com:23` (Level 29) | PETSCII |
+| 7 | `bbs.retrocampus.com:6510` | PETSCII |
+| 8 | `vert.synchro.net:23` (Vertrauen, home of Synchronet) | ANSI |
+| 9 | `telehack.com:23` | UTF-8 |
+
+Telehack ignores the window size and writes 80-column text, so its longer
+lines wrap onto two rows.
+
 The list is stored in `telnet.cfg` on the drive the program was loaded from
-(device 8 if unknown). It is loaded at start-up and written when you press `S`.
+(device 8 if unknown). It is loaded at start-up and written when you press `S`:
+first as `telnet.tmp`, which then replaces `telnet.cfg`, so a failed save
+leaves the old list on the disk.
 
 ## Source layout
 
@@ -86,21 +123,32 @@ The list is stored in `telnet.cfg` on the drive the program was loaded from
 | `session.asm` | connection loop, session keys, status line, retry |
 | `book.asm` | address book start screen, disk load/save |
 | `ui.asm` | printing, popup boxes, line input, clock |
-| `test/` | fake network and scripted scenarios |
+| `test/` | fake network, scripted scenarios, expected results |
+| `tools/` | `run_test.py`: runs a test build in VICE for `make check` |
 
 Memory: program `$0801`–`$37FF` (checked at build time), ANSI character set
-at `$3800`, buffers from `$4000`.
+at `$3800`, buffers (popup boxes, address book loading, the alternate screen)
+from `$4000`.
 
 ## Testing
 
-`make test` builds `build/test1.prg` … `build/test10.prg`. In these the WiC64
+`make test` builds `build/test1.prg` … `build/test12.prg`. In these the WiC64
 is replaced by a fake server that plays back a script, and keys come from a
 script too (`test/scenarios.asm`): PETSCII with Telnet negotiation, ANSI BBS
 output, UTF-8 host output, address book editing, line input, a network error,
-saving and loading `telnet.cfg`, and switching to ANSI (or not, for BBSes that
-only probe for it). Run one in VICE and look at the screen; what the client
-sent is logged at `$9000`.
+saving and loading `telnet.cfg`, switching to ANSI (or not, for BBSes that
+only probe for it), and the finer points of the ANSI and UTF-8 modes. Run one
+in VICE and look at the screen; what the client sent is logged at `$9000`.
 
-To use the WiC64 in VICE (user port device "WiC64", `-userportdevice 23`) on
-macOS you need VICE 3.10 or later: earlier versions crash on the first WiC64
-request (VICE bug #1978).
+`make check` runs them all in VICE (`x64sc` and `c1541` from the PATH or a
+VICE in `/Applications`, or set `VICE=` and `C1541=`) and compares the
+screen and what was sent with `test/expected/`. Each run also leaves a
+screenshot in `build/`. After an intended change, look at the new results
+and accept them with `make expected`.
+
+The test builds never touch `net.asm` or the WiC64, so after changing those,
+try a real connection too: `x64sc -userportdevice 23 -autostart
+build/telnet.prg` starts the client in VICE with its WiC64 emulation (user port
+device "WiC64"), which uses the computer's network connection. On macOS this
+needs VICE 3.10 or later: earlier versions crash on the first WiC64 request
+(VICE bug #1978).

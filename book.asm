@@ -493,31 +493,20 @@ book_menu:
 ; Disk
 ;---------------------------------------------------------
 
-; Replaces "telnet.cfg" on disk with the current list.
+; Replaces "telnet.cfg" on disk with the current list. The list is
+; written to "telnet.tmp" first and only renamed once it is on disk
+; completely, so a failed save leaves the old file alone.
 ; Returns A/Y = message describing the result.
 .write_file:
-    lda #.scratch_length    ; remove the old file first
-    ldx #<.scratch
-    ldy #>.scratch
-    jsr SETNAM
-    lda #15
-    ldx .device
-    ldy #15
-    jsr SETLFS
-    jsr OPEN
-    php
-    pha
-    lda #15
-    jsr CLOSE
-    pla
-    plp
-    bcs .kernal_error
-    jsr .read_drive_status
-    bcs .drive_error_message
+    lda #.scratch_tmp_length ; left over from an earlier failed save
+    ldx #<.scratch_tmp
+    ldy #>.scratch_tmp
+    jsr .disk_command
+    bcs .disk_failed
 
-    lda #.filename_length
-    ldx #<.filename
-    ldy #>.filename
+    lda #.tmp_filename_length
+    ldx #<.tmp_filename
+    ldy #>.tmp_filename
     jsr SETNAM
     lda #1
     ldx .device
@@ -534,10 +523,23 @@ book_menu:
     bcs .kernal_error
     jsr .read_drive_status
     bcs .drive_error_message
+
+    lda #.scratch_length
+    ldx #<.scratch
+    ldy #>.scratch
+    jsr .disk_command
+    bcs .disk_failed
+    lda #.rename_length
+    ldx #<.rename
+    ldy #>.rename
+    jsr .disk_command
+    bcs .disk_failed
     lda #<.saved_message
     ldy #>.saved_message
     rts
 
+.disk_failed:
+    bne .drive_error_message
 .kernal_error:
     cmp #5
     bne +
@@ -555,6 +557,30 @@ book_menu:
     beq .unknown_disk_error
     lda #<.drive_status
     ldy #>.drive_status
+    rts
+
+; Sends the DOS command at X/Y (length A) and reads the drive status.
+; Returns C=1 on failure: Z=1 if the drive could not be reached
+; (A = KERNAL error), Z=0 if it reported an error.
+.disk_command:
+    jsr SETNAM
+    lda #15
+    ldx .device
+    ldy #15
+    jsr SETLFS
+    jsr OPEN
+    php
+    pha
+    lda #15
+    jsr CLOSE
+    pla
+    plp
+    bcs .command_failed
+    jsr .read_drive_status
+    lda #1                  ; Z=0: the drive reported the error
+    rts
+.command_failed:
+    ldx #0                  ; Z=1: A = KERNAL error
     rts
 
 ; Reads the drive's status message into .drive_status.
@@ -613,16 +639,18 @@ book_menu:
 .file:
     !text "WTB1"
 .MAGIC_LENGTH = * - .file
-.count: !byte 7
+.count: !byte 9
 .entries:
-    +book_entry "13th.hoyvision.com:6400", TERM_PETSCII
+    +book_entry "8bit.hoyvision.com:6502", TERM_PETSCII
     +book_entry "cib.dyndns.org:6405", TERM_PETSCII
-    +book_entry "darklevel.hopto.org:64128", TERM_PETSCII
+    +book_entry "cottonwoodbbs.dyndns.org:6502", TERM_PETSCII
     +book_entry "rapidfire.hopto.org:64128", TERM_PETSCII
     +book_entry "raveolution.hopto.org:64128", TERM_PETSCII
-    +book_entry "8bit.hoyvision.com:6400", TERM_PETSCII
+    +book_entry "bbs.fozztexx.com:23", TERM_PETSCII
     +book_entry "bbs.retrocampus.com:6510", TERM_PETSCII
-    !fill (.MAX_ENTRIES - 7) * .ENTRY_SIZE, 0
+    +book_entry "vert.synchro.net:23", TERM_ANSI
+    +book_entry "telehack.com:23", TERM_UTF8
+    !fill (.MAX_ENTRIES - 9) * .ENTRY_SIZE, 0
 .file_end:
 .FILE_SIZE = .file_end - .file
 !if .FILE_SIZE <= $200 | .FILE_SIZE > $2ff {
@@ -631,15 +659,21 @@ book_menu:
 
 .filename: !pet "telnet.cfg"
 .filename_length = * - .filename
+.tmp_filename: !pet "telnet.tmp"
+.tmp_filename_length = * - .tmp_filename
 .scratch:  !pet "s0:telnet.cfg"
 .scratch_length = * - .scratch
+.scratch_tmp: !pet "s0:telnet.tmp"
+.scratch_tmp_length = * - .scratch_tmp
+.rename:   !pet "r0:telnet.cfg=telnet.tmp"
+.rename_length = * - .rename
 
 .open_host:    !fill .HOST_MAX + 1, 0
 .drive_status: !fill 40, 0
 
 .title:
     !pet PET_RVS_ON, PET_LIGHT_GREEN
-    !pet "        WiC64 Telnet Client 3.0        ", PET_RVS_OFF, 0
+    !pet "        WiC64 Telnet Client 3.1        ", PET_RVS_OFF, 0
 .help:
     !pet PET_WHITE, "RETURN", PET_GREEN, "/", PET_WHITE, "1-9", PET_GREEN, " connect  "
     !pet PET_WHITE, "CRSR", PET_GREEN, " select", 13

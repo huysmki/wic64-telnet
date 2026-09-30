@@ -1,0 +1,82 @@
+Screen:
+  |Switched to ANSI                        |
+  |--More--(60%)                           |
+  |@                                       |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+
+Screen codes and colours:
+   0 531709140308050420140f20414e5349202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   1 adadcd8f9285adada8b6b0a5a9202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   2 00a02020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   3 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   4 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   5 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   6 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   7 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   8 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   9 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  10 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  11 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  12 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  13 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  14 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  15 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  16 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  17 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  18 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  19 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  20 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  21 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  22 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  23 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  24 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     5555555555555555555555555555555555555555
+
+Sent (21 bytes):
+  ff fb 1f ff fa 1f 00 28 00 19 ff f0 ff fa 1f 00  .......(........
+  28 00 18 ff f0                                   (....
