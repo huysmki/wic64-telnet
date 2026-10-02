@@ -673,7 +673,7 @@ book_menu:
 
 .title:
     !pet PET_RVS_ON, PET_LIGHT_GREEN
-    !pet "        WiC64 Telnet Client 3.1        ", PET_RVS_OFF, 0
+    !pet "        WiC64 Telnet Client 3.2        ", PET_RVS_OFF, 0
 .help:
     !pet PET_WHITE, "RETURN", PET_GREEN, "/", PET_WHITE, "1-9", PET_GREEN, " connect  "
     !pet PET_WHITE, "CRSR", PET_GREEN, " select", 13

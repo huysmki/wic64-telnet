@@ -1,4 +1,4 @@
-# WiC64 Telnet Client 3.1
+# WiC64 Telnet Client 3.2
 
 A Telnet client for the Commodore 64 with a WiC64 (firmware 2.0.0 or later).
 
@@ -14,8 +14,8 @@ To build it yourself with [ACME](https://sourceforge.net/projects/acme-crossass/
 | PETSCII | PETSCII |
 |---------|---------|
 | <img src="docs/screenshots/petscii-retrocampus.png" width="384" alt="RetroCampus BBS in PETSCII mode"> | <img src="docs/screenshots/petscii-rapidfire.png" width="384" alt="Rapidfire BBS in PETSCII mode"> |
-| **ANSI** | **UTF-8** |
-| <img src="docs/screenshots/ansi-vertrauen.png" width="384" alt="Vertrauen, a Synchronet BBS, in ANSI mode"> | <img src="docs/screenshots/utf8-telehack.png" width="384" alt="Telehack in UTF-8 mode"> |
+| **ANSI** | **UTF-8 80** |
+| <img src="docs/screenshots/ansi-vertrauen.png" width="384" alt="Vertrauen, a Synchronet BBS, in ANSI mode"> | <img src="docs/screenshots/utf8-telehack.png" width="384" alt="Telehack in UTF-8 80 mode"> |
 
 *RetroCampus, Rapidfire, Vertrauen and Telehack, taken in VICE with its WiC64
 emulation.*

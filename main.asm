@@ -1,5 +1,5 @@
 ;---------------------------------------------------------
-; WiC64 Telnet Client 3.1
+; WiC64 Telnet Client 3.2
 ;
 ; Build:       acme -f cbm -o telnet.prg main.asm
 ; Test build:  acme -f cbm -DTEST=1 -DSCENARIO=<n> -o test.prg main.asm

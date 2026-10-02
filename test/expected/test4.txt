@@ -1,5 +1,5 @@
 Screen:
-  |        WiC64 Telnet Client 3.1         |
+  |        WiC64 Telnet Client 3.2         |
   |                                        |
   | 1 xyit.hoyvision.com:6502     PETSCII  |
   | 2 cottonwoodbbs.dyndns.org:65 PETSCII  |
@@ -26,7 +26,7 @@ Screen:
   |        F5 echo     F7 menu             |
 
 Screen codes and colours:
-   0 a0a0a0a0a0a0a0a0d789c3b6b4a0d4858c8e8594a0c38c89858e94a0b3aeb1a0a0a0a0a0a0a0a020
+   0 a0a0a0a0a0a0a0a0d789c3b6b4a0d4858c8e8594a0c38c89858e94a0b3aeb2a0a0a0a0a0a0a0a020
      ddddddddddddddddddddddddddddddddddddddd5
    1 20202020202020202020202020202020202020202020202020202020202020202020202020202020
      5555555555555555555555555555555555555555
