@@ -1,0 +1,80 @@
+Screen:
+  |ansi line 35 of the test                |
+  |ansi line 36 of the test                |
+  |ansi line 37 of the test                |
+  |ansi line 38 of the test                |
+  |ansi line 39 of the test                |
+  |ansi line 40 of the test                |
+  |ansi line 41 of the test                |
+  |ansi line 42 of the test                |
+  |ansi line 43 of the test                |
+  |ansi line 44 of the test                |
+  |ansi line 45 of the test                |
+  |ansi line 46 of the test                |
+  |ansi line 47 of the test                |
+  |ansi line 48 of the test                |
+  |ansi line 49 of the test                |
+  |ansi line 50 of the test                |
+  |ansi line 51 of the test                |
+  |ansi line 52 of the test                |
+  |ansi line 53 of the test                |
+  |ansi line 54 of the test                |
+  |ansi line 55 of the test                |
+  |ansi line 56 of the test                |
+  |ansi line 57 of the test                |
+  |ansi line 58 of the test                |
+  | scrollback 1/50        crsr f1 f3 home |
+
+Screen codes and colours:
+   0 010e1309200c090e05203335200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   1 010e1309200c090e05203336200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   2 010e1309200c090e05203337200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   3 010e1309200c090e05203338200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   4 010e1309200c090e05203339200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   5 010e1309200c090e05203430200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   6 010e1309200c090e05203431200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   7 010e1309200c090e05203432200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   8 010e1309200c090e05203433200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+   9 010e1309200c090e05203434200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  10 010e1309200c090e05203435200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  11 010e1309200c090e05203436200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  12 010e1309200c090e05203437200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  13 010e1309200c090e05203438200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  14 010e1309200c090e05203439200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  15 010e1309200c090e05203530200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  16 010e1309200c090e05203531200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  17 010e1309200c090e05203532200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  18 010e1309200c090e05203533200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  19 010e1309200c090e05203534200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  20 010e1309200c090e05203535200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  21 010e1309200c090e05203536200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  22 010e1309200c090e05203537200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  23 010e1309200c090e05203538200f0620140805201405131420202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffff
+  24 a09383928f8c8c8281838ba0b1afb5b0a0a0a0a0a0a0a0a083929392a086b1a086b3a0888f8d85a0
+     cccccccccccccccccccccccccccccccccccccccc
+
+Sent (0 bytes):

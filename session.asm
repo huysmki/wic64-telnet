@@ -3,7 +3,7 @@
 ;
 ; Runs the loop that moves data between the network and the terminal,
 ; handles the session keys (F1 hang up, F3 line input, F5 local echo,
-; F7 session menu), keeps the online clock and status line up to date
+; F7 session menu, SHIFT F7 scrollback), keeps the online clock and status line up to date
 ; and deals with network failures: timeouts are retried quietly a few
 ; times, anything else asks the user whether to retry or give up.
 ;---------------------------------------------------------
@@ -131,6 +131,10 @@ session_run:
     jsr .session_menu
     bcc .handle_keys
     rts
++   cmp #KEY_F8
+    bne +
+    jsr scrollback_view
+    jmp .handle_keys
 +   jsr term_key
     jmp .handle_keys
 
@@ -200,12 +204,14 @@ session_run:
     jsr print_field
     jsr clock_format
     +print clock_text
-    +plot 1, 21
+    +plot 1, 20
     +print .menu_line1
-    +plot 1, 22
+    +plot 1, 21
     +print .menu_line2
-    +plot 1, 23
+    +plot 1, 22
     +print .menu_line3
+    +plot 1, 23
+    +print .menu_line4
 
     jsr wait_key
     pha
@@ -224,6 +230,11 @@ session_run:
 +   cmp #"H"
     bne +
     sec
+    rts
++   cmp #"S"
+    bne +
+    jsr scrollback_view
+    clc
     rts
 +   ldx #.COMMAND_COUNT-1
 -   cmp .command_keys,x
@@ -352,10 +363,11 @@ session_run:
 .off_text:        !pet "off", 0
 .menu_line1:      !pet PET_WHITE, "M", PET_GREEN, " next mode    "
                   !pet PET_WHITE, "E", PET_GREEN, " local echo", 0
-.menu_line2:      !pet PET_WHITE, "B", PET_GREEN, " send break   "
-                  !pet PET_WHITE, "I", PET_GREEN, " interrupt", 0
-.menu_line3:      !pet PET_WHITE, "A", PET_GREEN, " are you there  "
+.menu_line2:      !pet PET_WHITE, "S", PET_GREEN, " scrollback   "
                   !pet PET_WHITE, "H", PET_GREEN, " hang up", 0
+.menu_line3:      !pet PET_WHITE, "B", PET_GREEN, " send break   "
+                  !pet PET_WHITE, "I", PET_GREEN, " interrupt", 0
+.menu_line4:      !pet PET_WHITE, "A", PET_GREEN, " are you there", 0
 .retry_prompt:    !pet PET_YELLOW, "F1 ", PET_RED, "Abort  "
                   !pet PET_YELLOW, "F3 ", PET_RED, "Retry", 0
 .echo_screen:     !scr "echo"

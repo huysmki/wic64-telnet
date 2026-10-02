@@ -3,9 +3,9 @@ ACME ?= acme
 VICE_BIN = $(firstword $(wildcard /Applications/vice-*/bin))
 VICE ?= $(if $(VICE_BIN),$(VICE_BIN)/x64sc,x64sc)
 C1541 ?= $(if $(VICE_BIN),$(VICE_BIN)/c1541,c1541)
-SOURCES = main.asm defs.asm ui.asm net.asm telnet.asm term.asm ansi.asm \
+SOURCES = main.asm defs.asm ui.asm net.asm telnet.asm term.asm ansi.asm scrollback.asm screen80.asm \
           charmaps.asm session.asm book.asm wic64.h wic64.asm
-SCENARIOS = 1 2 3 4 5 6 7 8 9 10 11 12
+SCENARIOS = 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
 DISK_SCENARIOS = 7 8
 
 build/telnet.prg: $(SOURCES)

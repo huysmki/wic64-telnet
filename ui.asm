@@ -124,7 +124,9 @@ ui_screen_menu:
 ;
 ; A box covers the screen from its first row down to the bottom row
 ; and puts back whatever was underneath when it is closed, including
-; the cursor, colours and the screen editor's line links. Inside the
+; the cursor, colours and the screen editor's line links. In 80
+; columns the text screen is shown from the box's first row down
+; while it is open. Inside the
 ; box every row is a separate screen line, so the KERNAL editor and
 ; ui_input behave predictably whatever the session printed before.
 ; Only one box can be open at a time.
@@ -139,6 +141,7 @@ box_open:
     sta .color
     stx .first_row
     jsr term_cursor_hide
+    jsr s80_flush           ; 80 columns: the screen above as it is now
 
     sec
     jsr PLOT
@@ -189,7 +192,9 @@ box_open:
     jsr .fill_row
     ldx #24
     lda #BOX_BORDER_BOTTOM
-    jmp .fill_row
+    jsr .fill_row
+    lda .first_row
+    jmp s80_text_from
 
 box_close:
     ldx .first_row
@@ -222,6 +227,8 @@ box_close:
     dex
     bpl -
 
+    lda #24
+    jsr s80_text_from
     lda .saved_reverse
     sta REVERSE_FLAG
     lda .saved_color

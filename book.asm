@@ -649,7 +649,7 @@ book_menu:
     +book_entry "bbs.fozztexx.com:23", TERM_PETSCII
     +book_entry "bbs.retrocampus.com:6510", TERM_PETSCII
     +book_entry "vert.synchro.net:23", TERM_ANSI
-    +book_entry "telehack.com:23", TERM_UTF8
+    +book_entry "telehack.com:23", TERM_UTF8_80
     !fill (.MAX_ENTRIES - 9) * .ENTRY_SIZE, 0
 .file_end:
 .FILE_SIZE = .file_end - .file
