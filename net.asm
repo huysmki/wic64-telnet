@@ -5,6 +5,12 @@
 ; next net_poll, which then reads whatever the server has sent and
 ; hands each byte to telnet_receive.
 ;
+; Every request costs the WiC64 work (its firmware starts and ends a
+; task for each transfer), and reading nonstop meant some 90 requests
+; a second even on an idle connection. So while reads bring nothing,
+; net_poll waits longer and longer between them, up to
+; NET_IDLE_JIFFIES; anything received or sent ends the wait.
+;
 ; Routines that talk to the WiC64 return with carry set on failure.
 ; net_status then holds the WiC64 status code, or NET_TIMEOUT if the
 ; device did not answer in time; net_error_text describes it.
@@ -14,6 +20,8 @@
 NET_TIMEOUT = $ff
 NET_TX_SIZE = 250
 NET_REQUEST_TIMEOUT = $05
+NET_IDLE_JIFFIES = 8        ; at most 8/60 s between reads that bring
+                            ; nothing
 
 net_status: !byte 0
 
@@ -44,6 +52,7 @@ net_open:
 +   sty .open_size
     lda #0
     sta .tx_length
+    sta .idle_wait
     +wic64_execute .open_request, net_response, NET_REQUEST_TIMEOUT
     jmp .result
 
@@ -64,16 +73,27 @@ net_send:
     rts
 
 ; Sends the queued bytes, then passes everything received to
-; telnet_receive.
+; telnet_receive; or, while the connection is idle, does nothing until
+; it is time to read again.
 net_poll:
     lda .tx_length
-    beq .read
+    bne .write
+    lda JIFFY_LO
+    sec
+    sbc .last_read
+    cmp .idle_wait
+    bcs .read
+    clc                     ; not yet
+    rts
+
+.write:
     sta .tx_size
     +wic64_execute .write_request, net_response, NET_REQUEST_TIMEOUT
     jsr .result
     bcs .poll_done
     lda #0
     sta .tx_length
+    sta .idle_wait          ; an answer is likely to follow soon
 
 .read:
     +wic64_set_store_instruction .deliver
@@ -81,9 +101,28 @@ net_poll:
     php
     pha
     +wic64_reset_store_instruction
+    lda JIFFY_LO
+    sta .last_read
     pla
     plp
-    jmp .result
+    jsr .result
+    bcs .poll_done
+    lda wic64_response_size
+    ora wic64_response_size+1
+    beq .nothing_read
+    lda #0                  ; data: read again straight away
+    sta .idle_wait
+    rts                     ; C=0
+.nothing_read:
+    lda .idle_wait          ; wait 1, 2, 4, ... jiffies
+    asl
+    bne +
+    lda #1
++   cmp #NET_IDLE_JIFFIES + 1
+    bcc +
+    lda #NET_IDLE_JIFFIES
++   sta .idle_wait
+    clc
 .poll_done:
     rts
 
@@ -131,6 +170,8 @@ net_error_text:
 .timeout_message: !pet "WiC64 did not answer in time", 0
 
 .y: !byte 0
+.last_read: !byte 0         ; JIFFY_LO at the last read
+.idle_wait: !byte 0         ; jiffies to wait after it
 
 .set_transfer_timeout: !byte "R", WIC64_SET_TRANSFER_TIMEOUT, $01, $00, NET_REQUEST_TIMEOUT
 .set_remote_timeout:   !byte "R", WIC64_SET_REMOTE_TIMEOUT, $01, $00, NET_REQUEST_TIMEOUT
