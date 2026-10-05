@@ -107,11 +107,12 @@ zp_b = $fd
 ;   $6000-$7fff  80 columns: the cells of the screen and of the
 ;                alternate screen
 ;   $8000-$83ff  80 columns: FONT80
-;   $6000-$bfff  SCROLLBACK ring in 40 columns, from $8400 in 80; the
-;                top 8 KB is the RAM under the BASIC ROM (BASIC_INLIN
-;                is used for line input). Test builds use 1 KB, so that
-;                it fills up, and log what the client sent to the fake
-;                server from $9000.
+;   $6000-$9fff  SCROLLBACK ring in 40 columns, from $8400 in 80. Test
+;                builds use 1 KB, so that it fills up, and log what the
+;                client sent to the fake server from $9000.
+;   $a000-$bfff  NET_RX_BUFFER: what one read from the WiC64 brought (at
+;                most 8 KB), in the RAM under the BASIC ROM (BASIC_INLIN
+;                is used for line input)
 ;   $c000-$cbff  BSS: uninitialised buffers
 ;   $cc00-$cfe7  80 columns: colours of the bitmap (VIC bank 3)
 ;   $e000-$ff3f  80 columns: the bitmap, in the RAM under the KERNAL ROM
@@ -132,9 +133,11 @@ SCROLLBACK_80    = $8400
     SCROLLBACK_40_END = SCROLLBACK_40 + $0400
     SCROLLBACK_80_END = SCROLLBACK_80 + $0400
 } else {
-    SCROLLBACK_40_END = $c000
-    SCROLLBACK_80_END = $c000
+    SCROLLBACK_40_END = $a000
+    SCROLLBACK_80_END = $a000
 }
+NET_RX_BUFFER    = $a000          ; 8 KB: the most the WiC64 firmware
+                                  ; reads at a time
 BSS              = $c000
 box_save_buffer  = BSS            ; 8 rows * (40 screen + 40 color)
 box_save_links   = BSS + $0280    ; 25 bytes

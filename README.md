@@ -79,9 +79,9 @@ starting a page back: `CRSR` up/down one row, `F1`/`F3` a page up/down,
 `HOME` the oldest row, `CLR` the current screen; any other key goes back to
 the session. Nothing is read from the server meanwhile, so nothing is missed.
 
-There is room for 24 KB of rows. A row is kept without its trailing blanks,
-so that is about 400 full rows, and typically 500 or more; in 80 columns,
-which need some of that memory, 15 KB, about 120 full rows. When it is full
+There is room for 16 KB of rows. A row is kept without its trailing blanks,
+so that is about 260 full rows, and typically 350 or more; in 80 columns,
+which need some of that memory, 7 KB, about 55 full rows. When it is full
 the oldest rows make way. The scrollback starts empty when the terminal mode
 changes (its rows only look right in their own character set) and at each
 connection. In the ANSI modes rows that scroll within a part of the screen
@@ -178,9 +178,10 @@ Memory: the program runs in two parts around the ANSI character set at
 `$3800`: `$0801`–`$37FF` and `$4000`–`$57FF` (both checked at build time).
 The second part is stored right after the first in `telnet.prg` and moved up
 at start-up. While the scrollback is shown the screen is kept at
-`$5800`–`$5FFF`; the scrollback itself is at `$6000`–`$BFFF`, the top 8 KB
-of it in the RAM under the BASIC ROM. Buffers (popup boxes, address book
-loading, the alternate screen) are at `$C000`–`$CBFF`. 80 columns use
+`$5800`–`$5FFF`; the scrollback itself is at `$6000`–`$9FFF`. What one read
+from the WiC64 brings (at most 8 KB) is received at `$A000`–`$BFFF`, in the
+RAM under the BASIC ROM, before it is handled. Buffers (popup boxes, address
+book loading, the alternate screen) are at `$C000`–`$CBFF`. 80 columns use
 `$6000`–`$83FF` for their cells and font (the scrollback then starts at
 `$8400`), the bitmap's colours at `$CC00` and the bitmap itself in the RAM
 under the KERNAL ROM, at `$E000`.

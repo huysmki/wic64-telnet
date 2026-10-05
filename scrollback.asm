@@ -15,8 +15,6 @@
 ; A row is stored without its trailing blanks, as one record:
 ;   length, characters, colours (two per byte, low nibble first), length
 ; The length at both ends lets the ring be walked in either direction.
-; The top of the ring may lie under the BASIC ROM: writes go to the
-; RAM there anyway, reads switch BASIC off for a moment.
 ;---------------------------------------------------------
 
 !zone scrollback {
@@ -209,13 +207,9 @@ scrollback_add_row:
 ; Returns A = the byte at the read position and advances it.
 ; Preserves X and Y.
 .read_byte:
-    lda #R6510_NO_BASIC
-    sta R6510
 .read:
     lda $ffff
     pha
-    lda #R6510_DEFAULT
-    sta R6510
     inc .read+1
     bne +
     lda .read+2
