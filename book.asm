@@ -642,7 +642,7 @@ book_menu:
 .count: !byte 9
 .entries:
     +book_entry "8bit.hoyvision.com:6502", TERM_PETSCII
-    +book_entry "cib.dyndns.org:6405", TERM_PETSCII
+    +book_entry "particlesbbs.dyndns.org:6400", TERM_PETSCII
     +book_entry "cottonwoodbbs.dyndns.org:6502", TERM_PETSCII
     +book_entry "rapidfire.hopto.org:64128", TERM_PETSCII
     +book_entry "raveolution.hopto.org:64128", TERM_PETSCII

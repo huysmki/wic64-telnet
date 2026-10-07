@@ -129,7 +129,7 @@ It comes with nine servers that were online when this version was made:
 | # | Server | Mode |
 |---|--------|------|
 | 1 | `8bit.hoyvision.com:6502` (8-Bit Playground) | PETSCII |
-| 2 | `cib.dyndns.org:6405` | PETSCII |
+| 2 | `particlesbbs.dyndns.org:6400` (Particles! BBS) | PETSCII |
 | 3 | `cottonwoodbbs.dyndns.org:6502` | PETSCII |
 | 4 | `rapidfire.hopto.org:64128` | PETSCII |
 | 5 | `raveolution.hopto.org:64128` | PETSCII |

@@ -23,7 +23,7 @@ Screen:
   |                                        |
   |                                        |
   |                                        |
-  | cib.dyndns.org:64 ANSI         00:00:00|
+  | particlesbbs.dynd ANSI         00:00:00|
 
 Screen codes and colours:
    0 9cf5faf4f69f9eea209cf5faf4f62020202020202020202020202020202020202020202020202020
@@ -74,7 +74,7 @@ Screen codes and colours:
      ffffffffffffffffffffffffffffffffffffffff
   23 20202020202020202020202020202020202020202020202020202020202020202020202020202020
      ffffffffffffffffffffffffffffffffffffffff
-  24 a0838982ae84998e848e93ae8f9287bab6b4a0c1ced3c9a0a0a0a0a0a0a0a0a0b0b0bab0b0bab0b0
+  24 a09081929489838c8593828293ae84998e84a0c1ced3c9a0a0a0a0a0a0a0a0a0b0b0bab0b0bab0b0
      cccccccccccccccccccccccccccccccccccccccc
 
 Sent (0 bytes):
