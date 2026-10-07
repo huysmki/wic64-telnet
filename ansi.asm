@@ -760,7 +760,10 @@ ansi_output_utf8:
     txa
 +   jsr .clamp_column
     sta ansi_x
-    jmp .clear_wrap
+    ora ansi_y
+    bne +
+    jsr s80_home            ; often the start of a new frame
++   jmp .clear_wrap
 
 .clamp_row:
     cmp #.ROWS

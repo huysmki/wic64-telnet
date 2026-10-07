@@ -512,7 +512,8 @@ term_cursor_show:
 ; hide it, the cell only counts as changed, to be drawn as it is with
 ; the next update of the bitmap.
 .cursor80:
-    jsr s80_flush
+    jsr s80_update
+    bcc .cursor_done        ; a frame is still coming in
     lda ansi_cursor_enabled
     beq .cursor_done
     ldx ansi_y

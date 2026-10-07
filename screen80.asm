@@ -23,6 +23,15 @@
 ; single move of the bitmap, and a row is drawn once, not once for
 ; each character.
 ;
+; Programs that redraw the whole screen again and again (top, films
+; such as Telehack's starwars) start each frame with a cursor home
+; (s80_home). A read seldom ends where a frame does, so drawing after
+; each read would show half a frame, new rows above old ones, until
+; the next read is done: seconds on a C64. So after a cursor home,
+; s80_update leaves the bitmap as it is until the next cursor home or
+; until nothing changed for .FRAME_QUIET_JIFFIES. Scrolling ends such
+; a frame, so output that scrolls is drawn after each read as before.
+;
 ; The bitmap is in the RAM under the KERNAL ROM. Writing to it needs
 ; nothing special; reading it (to move rows) switches the ROM off,
 ; with interrupt vectors in the RAM below it for meanwhile.
@@ -39,6 +48,7 @@
 .CLEAN_FROM = $ff           ; .dirty_from/.dirty_to of a row with no
 .CLEAN_TO   = 0             ; changes to draw
 .ROWS = 24
+.FRAME_QUIET_JIFFIES = 4
 
 !if ((BITMAP80 & $1fff) != 0) | ((BITMAP80 & $c000) != (MATRIX80 & $c000)) {
     !error "The bitmap and its colours must be in one VIC bank"
@@ -63,6 +73,7 @@ s80_start:
     lda #0
     sta .pending
     sta .dirty
+    sta .frame_open
 
     lda #0
     ldx #>BITMAP80
@@ -157,7 +168,9 @@ s80_touch:
     cmp .dirty_to,x
     bcc +
     sta .dirty_to,x
-+   lda #1
++   lda JIFFY_LO
+    sta .last_change
+    lda #1
     sta .dirty
     rts
 
@@ -179,6 +192,8 @@ s80_touch_all:
 s80_scroll_up:
     stx .top
     sty .bottom
+    lda #0
+    sta .frame_open
     lda .pending
     beq .new_region
     cpx .scroll_top
@@ -231,6 +246,33 @@ s80_scroll_down:
     dey
     jmp -
 +   rts
+
+; At a cursor home: shows the frame before it, which is complete now,
+; and holds back s80_update until this one is.
+s80_home:
+    lda .active
+    beq +
+    jsr s80_flush
+    lda #1
+    sta .frame_open
++   rts
+
+; Brings the bitmap up to date with the cells, unless a frame that
+; began with a cursor home is still coming in. Returns C=1 if the
+; bitmap is up to date.
+s80_update:
+    lda .frame_open
+    beq +
+    lda JIFFY_LO
+    sec
+    sbc .last_change
+    cmp #.FRAME_QUIET_JIFFIES
+    bcc ++                  ; C=0: the rest is probably on its way
+    lda #0
+    sta .frame_open
++   jsr s80_flush
+    sec
+++  rts
 
 ; Brings the bitmap up to date with the cells.
 s80_flush:
@@ -740,6 +782,9 @@ s80_copy_row:
 .scroll_top:   !byte 0      ; in this region
 .scroll_bottom: !byte 0
 .dirty:        !byte 0      ; 1 if a row has changes to draw
+.frame_open:   !byte 0      ; 1 after a cursor home, until the frame
+                            ; is drawn
+.last_change:  !byte 0      ; JIFFY_LO when a cell last changed
 .dirty_from:   !fill .ROWS, .CLEAN_FROM
 .dirty_to:     !fill .ROWS, .CLEAN_TO
 }
