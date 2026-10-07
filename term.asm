@@ -2,7 +2,7 @@
 ; Terminal
 ;
 ; Turns what the server sends into screen output and keystrokes into
-; bytes for the server, in one of three modes:
+; bytes for the server, in one of these modes:
 ;
 ;   PETSCII  Commodore BBSes: bytes go straight to the KERNAL screen
 ;            editor, keys are sent as typed. Full 40 x 25 screen.
@@ -11,6 +11,11 @@
 ;   ANSI     PC BBSes: ASCII with ANSI/VT100 escape sequences and
 ;            CP437 line drawing, on 40 x 24 plus a status line.
 ;   UTF-8    Unix hosts: like ANSI, with UTF-8 characters.
+;   ANSI 80, UTF-8 80
+;            The same on 80 x 24: the cells are kept in CELLS80 and
+;            drawn on a bitmap (screen80.asm) instead of the screen.
+;            The rows of cells are found through a table, so that
+;            scrolling only reorders the table.
 ;
 ; The cursor is drawn by the terminal itself (reverse video) and is
 ; hidden automatically before anything touches the screen.
@@ -20,16 +25,30 @@
 TERM_PETSCII = 0
 TERM_ANSI    = 1
 TERM_UTF8    = 2
-TERM_MODES   = 3
+TERM_ANSI80  = 3
+TERM_UTF8_80 = 4
+TERM_MODES   = 5
 
 term_mode:       !byte TERM_PETSCII
 term_local_echo: !byte 0
 term_rows:       !byte 25
+term_columns:    !byte 40
+term_utf8:       !byte 0    ; 1 in the UTF-8 modes
 
-; A = mode. Clears the screen and sets it up for the mode.
+; A = mode. Clears the screen and the scrollback and sets them up
+; for the mode.
 term_start:
-    sta term_mode
+    pha
     jsr term_cursor_hide
+    jsr s80_stop
+    pla
+    sta term_mode
+    tax
+    lda .mode_columns,x
+    sta term_columns
+    lda .mode_utf8,x
+    sta term_utf8
+    jsr scrollback_clear
     lda #.NO_ESCAPE
     sta .escape_state
     lda term_mode
@@ -47,12 +66,143 @@ term_start:
     jsr ui_screen_menu      ; also locks the case switch, which would
     lda #VIC_CUSTOM_CHARSET ; otherwise flip VIC_MEMORY
     sta VIC_MEMORY
-    jmp ansi_reset
+    lda term_columns
+    cmp #80
+    bne +
+    lda #>CELLS80
+    jsr .number_rows
+    jsr s80_start
++   jmp ansi_reset
+
+.mode_columns: !byte 40, 40, 40, 80, 80
+.mode_utf8:    !byte 0, 0, 1, 0, 1
 
 ; Back to the plain menu screen.
 term_stop:
     jsr term_cursor_hide
+    jsr s80_stop
     jmp ui_screen_menu
+
+; X = row of the terminal. Points zp_a at its screen codes and zp_b at
+; its colours: the screen, or in 80 columns the cells the bitmap is
+; drawn from. Preserves X and Y.
+term_row_cells:
+    lda term_columns
+    cmp #80
+    beq +
+    lda screen_row_lo,x
+    sta zp_a
+    sta zp_b
+    lda screen_row_hi,x
+    sta zp_a+1
+    clc
+    adc #COLOR_OFFSET_HI
+    sta zp_b+1
+    rts
++   lda term_cells_lo,x
+    sta zp_a
+    sta zp_b
+    lda term_cells_hi,x
+    sta zp_a+1
+    clc
+    adc #>(CELLS80_COLORS - CELLS80)
+    sta zp_b+1
+    rts
+
+; 80 columns, X = top, Y = bottom row: rows X+1 to Y move up one, row
+; X going to the bottom (for the caller to erase).
+term_rows_up:
+    sty .last_row
+    lda term_cells_lo,x
+    pha
+    lda term_cells_hi,x
+    pha
+-   cpx .last_row
+    bcs +
+    lda term_cells_lo+1,x
+    sta term_cells_lo,x
+    lda term_cells_hi+1,x
+    sta term_cells_hi,x
+    inx
+    bne -
++   pla
+    sta term_cells_hi,x
+    pla
+    sta term_cells_lo,x
+    rts
+
+; 80 columns, X = top, Y = bottom row: rows X to Y-1 move down one, row
+; Y going to the top (for the caller to erase).
+term_rows_down:
+    stx .first_row
+    lda term_cells_lo,y
+    pha
+    lda term_cells_hi,y
+    pha
+-   cpy .first_row
+    beq +
+    bcc +
+    lda term_cells_lo-1,y
+    sta term_cells_lo,y
+    lda term_cells_hi-1,y
+    sta term_cells_hi,y
+    dey
+    jmp -
++   pla
+    sta term_cells_hi,y
+    pla
+    sta term_cells_lo,y
+    rts
+
+; 80 columns: switches to the rows of the alternate screen (A = 1), in
+; order, or back to those of the main screen as they were (A = 0).
+term_alternate_rows:
+    tay
+    beq .main_rows
+    ldx #23
+-   lda term_cells_lo,x
+    sta .main_lo,x
+    lda term_cells_hi,x
+    sta .main_hi,x
+    dex
+    bpl -
+    lda #>ALT_CELLS80
+    jmp .number_rows
+.main_rows:
+    ldx #23
+-   lda .main_lo,x
+    sta term_cells_lo,x
+    lda .main_hi,x
+    sta term_cells_hi,x
+    dex
+    bpl -
+    rts
+
+; A = first page of 24 rows of 80 cells (their colours $0800 higher);
+; points the table at them in order.
+.number_rows:
+    sta term_cells_hi
+    lda #0
+    sta term_cells_lo
+    tax
+-   lda term_cells_lo,x
+    clc
+    adc #80
+    sta term_cells_lo+1,x
+    lda term_cells_hi,x
+    adc #0
+    sta term_cells_hi+1,x
+    inx
+    cpx #23
+    bcc -
+    rts
+
+term_cells_lo:  !fill 24, 0     ; where the cells of each row are
+term_cells_hi:  !fill 24, 0
+.main_lo:   !fill 24, 0     ; those of the main screen meanwhile
+.main_hi:   !fill 24, 0
+.first_row: !byte 0
+.last_row:  !byte 0
 
 ; Displays the byte from the server in A.
 term_output:
@@ -61,7 +211,7 @@ term_output:
     pla
     ldx term_mode
     beq .petscii_output
-    dex
+    ldx term_utf8
     bne +
     jmp ansi_output_cp437
 +   jmp ansi_output_utf8
@@ -83,10 +233,53 @@ term_output:
 +   cmp #$07
     bne +
     jmp ui_bell
-+   jsr CHROUT
++   jsr .keep_scrolled_rows
+    jsr CHROUT
     lda #0                  ; a stray quote must not turn the following
     sta QUOTE_MODE          ; control codes into visible characters
     sta INSERT_COUNT
+    rts
+
+; Before a byte that makes the screen editor clear the screen or
+; scroll it, puts what will disappear into the scrollback: the top
+; logical line, which is one or two rows. The screen scrolls when the
+; cursor is on the bottom row and the byte moves it to the next row:
+; RETURN, cursor down, or anything that advances the cursor from the
+; last column. Preserves A.
+.keep_scrolled_rows:
+    sta .byte
+    cmp #PET_CLR
+    bne +
+    jsr scrollback_add_screen
+    jmp .kept
++   ldx CURSOR_ROW
+    cpx #24
+    bne .kept
+    cmp #$0d
+    beq .keep_top_line
+    cmp #$8d
+    beq .keep_top_line
+    cmp #KEY_DOWN
+    beq .keep_top_line
+    cmp #KEY_RIGHT
+    beq +
+    and #$7f                ; printable: $20-$7f and $a0-$ff
+    cmp #$20
+    bcc .kept
++   lda CURSOR_COL
+    cmp #39
+    beq .keep_top_line
+    cmp #79
+    bne .kept
+.keep_top_line:
+    ldx #0
+    jsr scrollback_add_row
+    lda LINE_LINKS+1
+    bmi .kept               ; row 1 starts the next logical line
+    ldx #1
+    jsr scrollback_add_row
+.kept:
+    lda .byte
     rts
 
 .in_escape:
@@ -249,10 +442,14 @@ term_mode_name:
     rts
 
 .mode_names_lo: !byte <.name_petscii, <.name_ansi, <.name_utf8
+                !byte <.name_ansi80, <.name_utf8_80
 .mode_names_hi: !byte >.name_petscii, >.name_ansi, >.name_utf8
+                !byte >.name_ansi80, >.name_utf8_80
 .name_petscii: !pet "PETSCII", 0
 .name_ansi:    !pet "ANSI", 0
 .name_utf8:    !pet "UTF-8", 0
+.name_ansi80:  !pet "ANSI 80", 0
+.name_utf8_80: !pet "UTF-8 80", 0
 
 ;---------------------------------------------------------
 ; Cursor
@@ -275,6 +472,9 @@ term_cursor_show:
     jmp .draw_cursor
 
 .ansi_cursor:
+    lda term_columns
+    cmp #80
+    beq .cursor80
     jsr ansi_cursor_cell
     bcs .cursor_done
 
@@ -302,15 +502,44 @@ term_cursor_show:
     sta .saved_color
     lda .cursor_color
     jsr .write_color
-    lda #1
+    lda #.ON_SCREEN
     sta .cursor_visible
 .cursor_done:
+    rts
+
+; In 80 columns the bitmap is first brought up to date. The cursor's
+; block is drawn with the character under the cursor reversed; to
+; hide it, the cell only counts as changed, to be drawn as it is with
+; the next update of the bitmap.
+.cursor80:
+    jsr s80_update
+    bcc .cursor_done        ; a frame is still coming in
+    lda ansi_cursor_enabled
+    beq .cursor_done
+    ldx ansi_y
+    stx .cursor_row
+    jsr term_row_cells
+    lda ansi_x
+    sta .cursor_column
+    jsr s80_draw_cursor
+    lda #.ON_BITMAP
+    sta .cursor_visible
     rts
 
 term_cursor_hide:
     lda .cursor_visible
     beq .cursor_done
-    lda .saved_char
+    cmp #.ON_BITMAP
+    bne +
+    ldx .cursor_row
+    lda .cursor_column
+    tay
+    iny
+    jsr s80_touch
+    lda #0
+    sta .cursor_visible
+    rts
++   lda .saved_char
     jsr .write_char
     lda .saved_color
     jsr .write_color
@@ -331,7 +560,12 @@ term_cursor_hide:
 .csi_bytes:      !fill .CSI_MAX, 0
 .csi_final_byte: !byte 0
 .replay_index:   !byte 0
-.cursor_visible: !byte 0
+.byte:           !byte 0
+.ON_SCREEN = 1
+.ON_BITMAP = 2
+.cursor_visible: !byte 0    ; 0, .ON_SCREEN or .ON_BITMAP
+.cursor_row:     !byte 0
+.cursor_column:  !byte 0
 .cursor_color:   !byte 0
 .saved_char:     !byte 0
 .saved_color:    !byte 0

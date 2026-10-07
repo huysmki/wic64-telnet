@@ -7,10 +7,12 @@
 ; but plain data. When asked, it agrees to:
 ;
 ;   BINARY (0)  both directions, needed for 8-bit PETSCII and UTF-8
-;   ECHO   (1)  server echoes what we type (turns local echo off)
+;   ECHO   (1)  server echoes what we type (turns local echo off, and
+;               on again when the server stops)
 ;   SGA    (3)  both directions, character-at-a-time mode
 ;   TTYPE (24)  reports "PETSCII" or "ANSI" depending on the mode
-;   NAWS  (31)  reports the window size: 40 x 25 (PETSCII) or 40 x 24
+;   NAWS  (31)  reports the window size: 40 x 25 (PETSCII), 40 x 24
+;               or 80 x 24
 ;
 ; Everything else is refused.
 ;---------------------------------------------------------
@@ -172,7 +174,12 @@ telnet_receive:
     beq .done
     lda #0
     sta .remote_on,x
-    lda #TN_DONT
+    lda .option
+    cmp #OPT_ECHO
+    bne +
+    lda #1                  ; the server stops echoing (often after a
+    sta term_local_echo     ; password), so echo locally again
++   lda #TN_DONT
     jmp .send_verb
 
 .do:
@@ -278,7 +285,7 @@ telnet_window_changed:
     jsr net_send
     lda #0
     jsr net_send
-    lda #40
+    lda term_columns
     jsr net_send
     lda #0
     jsr net_send

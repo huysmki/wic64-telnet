@@ -1,4 +1,4 @@
-# WiC64 Telnet Client 3.1
+# WiC64 Telnet Client 3.2
 
 A Telnet client for the Commodore 64 with a WiC64 (firmware 2.0.0 or later).
 
@@ -14,8 +14,8 @@ To build it yourself with [ACME](https://sourceforge.net/projects/acme-crossass/
 | PETSCII | PETSCII |
 |---------|---------|
 | <img src="docs/screenshots/petscii-retrocampus.png" width="384" alt="RetroCampus BBS in PETSCII mode"> | <img src="docs/screenshots/petscii-rapidfire.png" width="384" alt="Rapidfire BBS in PETSCII mode"> |
-| **ANSI** | **UTF-8** |
-| <img src="docs/screenshots/ansi-vertrauen.png" width="384" alt="Vertrauen, a Synchronet BBS, in ANSI mode"> | <img src="docs/screenshots/utf8-telehack.png" width="384" alt="Telehack in UTF-8 mode"> |
+| **ANSI** | **UTF-8 80** |
+| <img src="docs/screenshots/ansi-vertrauen.png" width="384" alt="Vertrauen, a Synchronet BBS, in ANSI mode"> | <img src="docs/screenshots/utf8-telehack.png" width="384" alt="Telehack in UTF-8 80 mode"> |
 
 *RetroCampus, Rapidfire, Vertrauen and Telehack, taken in VICE with its WiC64
 emulation.*
@@ -27,6 +27,7 @@ emulation.*
 | PETSCII | Commodore BBSes     | 40×25, colors and graphics as the BBS sends them                                     |
 | ANSI    | PC BBSes            | 40×24 + status line; ANSI/VT100 escape codes, CP437 line drawing and blocks          |
 | UTF-8   | Unix hosts, MUDs    | like ANSI, with UTF-8 characters (box drawing, accents → nearest ASCII)              |
+| ANSI 80, UTF-8 80 | the same, for hosts that expect 80 columns | 80×24 + status line, characters 4 pixels wide |
 
 Each server in the address book has its own mode (`T` on the start screen).
 During a session, `F7` then `M` switches mode. A PETSCII session switches to
@@ -34,6 +35,20 @@ ANSI by itself when the server draws with ANSI escape codes (colours, cursor
 positioning, clearing). ANSI detection queries such as `ESC [ 5 n`, which
 some Commodore BBSes send at login, are ignored and left unanswered, so those
 BBSes stay in PETSCII. For a UTF-8 host, press `F7`, `M` once more.
+
+## 80 columns
+
+ANSI 80 and UTF-8 80 put 80 columns on the screen, with characters made 4
+pixels wide from the C64's own font when the mode starts (the few letters
+that do not suit are drawn by hand). Most Unix hosts and some BBSes expect
+80 columns, and their lines then fit instead of wrapping. The status line,
+the session menu and line input look as in the other modes.
+
+The screen is a hires bitmap, which has one colour per block of 8×8 pixels:
+two characters next to each other share their colour (the left one's,
+unless that is a blank). Text looks fine; colourful ANSI art looks better
+in 40 columns. Drawing on a bitmap is also more work for the C64, so a
+screen full of fast output scrolls more slowly than in 40 columns.
 
 The C64 has one background colour, so a coloured ANSI background shows as
 reverse video in that colour. Blink shows as a bright background (iCE
@@ -50,8 +65,28 @@ host that isn't in the list (starts in PETSCII mode), `←` WiC64 portal. When
 editing, the C64 screen editor overwrites text; use `INST` to insert.
 
 Online: `F1` hang up, `F3` type a whole line (up to 80 characters),
-`F5` local echo on/off, `F7` session menu (mode, echo, Telnet break /
-interrupt / are-you-there, hang up).
+`F5` local echo on/off, `F7` session menu (mode, echo, scrollback, Telnet
+break / interrupt / are-you-there, hang up), `SHIFT F7` scrollback.
+`RUN/STOP`+`RESTORE` leaves the program for BASIC in any mode, without
+hanging up; `RUN` starts it again.
+
+## Scrollback
+
+Rows that scroll off the top of the screen are kept, and so is the whole
+screen when the server clears it (Commodore BBSes clear it for almost every
+menu). `SHIFT F7`, or `F7` then `S`, shows them above the current screen,
+starting a page back: `CRSR` up/down one row, `F1`/`F3` a page up/down,
+`HOME` the oldest row, `CLR` the current screen; any other key goes back to
+the session. Nothing is read from the server meanwhile, so nothing is missed.
+
+There is room for 16 KB of rows. A row is kept without its trailing blanks,
+so that is about 260 full rows, and typically 350 or more; in 80 columns,
+which need some of that memory, 7 KB, about 55 full rows. When it is full
+the oldest rows make way. The scrollback starts empty when the terminal mode
+changes (its rows only look right in their own character set) and at each
+connection. In the ANSI modes rows that scroll within a part of the screen
+(a full-screen program's scroll region) and the alternate screen are not
+kept, and `ESC [ 3 J` empties the scrollback, as in xterm.
 
 In the ANSI modes the bottom row is a status line: host, mode, `echo` when
 local echo is on, and the time online.
@@ -72,9 +107,10 @@ In ANSI and UTF-8 modes the keyboard sends ASCII:
 
 The client only answers negotiation; it never starts one. Servers without
 Telnet support therefore receive nothing except your keystrokes. It agrees to
-BINARY, ECHO, SGA, TTYPE (reports `PETSCII` or `ANSI`) and NAWS (40×25 or
-40×24), and refuses every other option. When the server takes over echoing,
-local echo is switched off.
+BINARY, ECHO, SGA, TTYPE (reports `PETSCII` or `ANSI`) and NAWS (40×25,
+40×24 or 80×24), and refuses every other option. When the server takes over echoing,
+local echo is switched off, and back on when the server stops echoing
+(as some do after a password).
 
 `RETURN` sends a bare CR in PETSCII mode (what Commodore BBSes expect) and the
 Telnet end of line CR NUL in the ANSI modes (a bare CR in binary mode).
@@ -93,17 +129,17 @@ It comes with nine servers that were online when this version was made:
 | # | Server | Mode |
 |---|--------|------|
 | 1 | `8bit.hoyvision.com:6502` (8-Bit Playground) | PETSCII |
-| 2 | `cib.dyndns.org:6405` | PETSCII |
+| 2 | `particlesbbs.dyndns.org:6400` (Particles! BBS) | PETSCII |
 | 3 | `cottonwoodbbs.dyndns.org:6502` | PETSCII |
 | 4 | `rapidfire.hopto.org:64128` | PETSCII |
 | 5 | `raveolution.hopto.org:64128` | PETSCII |
 | 6 | `bbs.fozztexx.com:23` (Level 29) | PETSCII |
 | 7 | `bbs.retrocampus.com:6510` | PETSCII |
 | 8 | `vert.synchro.net:23` (Vertrauen, home of Synchronet) | ANSI |
-| 9 | `telehack.com:23` | UTF-8 |
+| 9 | `telehack.com:23` | UTF-8 80 |
 
-Telehack ignores the window size and writes 80-column text, so its longer
-lines wrap onto two rows.
+Telehack writes 80-column text whatever window size it is told, so it is set
+to UTF-8 80; in UTF-8 its longer lines wrap onto two rows.
 
 The list is stored in `telnet.cfg` on the drive the program was loaded from
 (device 8 if unknown). It is loaded at start-up and written when you press `S`:
@@ -131,24 +167,36 @@ to the `telnet.prg` download.
 | `ansi.asm` | ANSI/VT100 screen driver |
 | `charmaps.asm` | ASCII character set, CP437/UTF-8/DEC tables |
 | `session.asm` | connection loop, session keys, status line, retry |
+| `scrollback.asm` | rows that left the screen, and the viewer for them |
+| `screen80.asm` | 80 columns: font, bitmap drawing, the split with the text screen |
 | `book.asm` | address book start screen, disk load/save |
 | `ui.asm` | printing, popup boxes, line input, clock |
 | `test/` | fake network, scripted scenarios, expected results |
 | `tools/` | `run_test.py`: runs a test build in VICE for `make check` |
 
-Memory: program `$0801`–`$37FF` (checked at build time), ANSI character set
-at `$3800`, buffers (popup boxes, address book loading, the alternate screen)
-from `$4000`.
+Memory: the program runs in two parts around the ANSI character set at
+`$3800`: `$0801`–`$37FF` and `$4000`–`$57FF` (both checked at build time).
+The second part is stored right after the first in `telnet.prg` and moved up
+at start-up. While the scrollback is shown the screen is kept at
+`$5800`–`$5FFF`; the scrollback itself is at `$6000`–`$9FFF`. What one read
+from the WiC64 brings (at most 8 KB) is received at `$A000`–`$BFFF`, in the
+RAM under the BASIC ROM, before it is handled. Buffers (popup boxes, address
+book loading, the alternate screen) are at `$C000`–`$CBFF`. 80 columns use
+`$6000`–`$83FF` for their cells and font (the scrollback then starts at
+`$8400`), the bitmap's colours at `$CC00` and the bitmap itself in the RAM
+under the KERNAL ROM, at `$E000`.
 
 ## Testing
 
-`make test` builds `build/test1.prg` … `build/test12.prg`. In these the WiC64
+`make test` builds `build/test1.prg` … `build/test19.prg`. In these the WiC64
 is replaced by a fake server that plays back a script, and keys come from a
 script too (`test/scenarios.asm`): PETSCII with Telnet negotiation, ANSI BBS
 output, UTF-8 host output, address book editing, line input, a network error,
 saving and loading `telnet.cfg`, switching to ANSI (or not, for BBSes that
-only probe for it), and the finer points of the ANSI and UTF-8 modes. Run one
-in VICE and look at the screen; what the client sent is logged at `$9000`.
+only probe for it), a server that stops echoing, the scrollback
+(with a 1 KB buffer, so that it fills up), 80 columns, and the finer points
+of the ANSI and UTF-8 modes. Run one in VICE and look at the screen; what the
+client sent is logged at `$9000` (so test builds must end below it).
 
 `make check` runs them all in VICE (`x64sc` and `c1541` from the PATH or a
 VICE in `/Applications`, or set `VICE=` and `C1541=`) and compares the

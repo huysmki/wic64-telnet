@@ -1,11 +1,14 @@
 ;---------------------------------------------------------
-; ANSI / VT100 terminal on a 40 x 24 screen
+; ANSI / VT100 terminal on a 40 x 24 or 80 x 24 screen
 ;
 ; Interprets the ASCII byte stream from the server, including the
 ; escape sequences used by BBSes (ANSI.SYS) and Unix full-screen
 ; programs (VT100/xterm subset), and draws directly into screen
 ; memory using the ASCII character set at CHARSET. Row 24 is left
-; alone for the session's status line.
+; alone for the session's status line. In 80 columns the same cells
+; are kept in CELLS80 (term_row_cells), and every change to them is
+; passed on to the bitmap (s80_touch, s80_scroll_up, s80_scroll_down),
+; which is brought up to date when the cursor is shown again.
 ;
 ; Supported: cursor movement and addressing, erase in display/line,
 ; insert/delete lines and characters, repeat, scroll regions, SGR
@@ -14,7 +17,8 @@
 ; device attribute reports, DEC line drawing, the alternate screen,
 ; application cursor keys, autowrap and cursor visibility modes.
 ; Unknown sequences are parsed and ignored, strings (OSC, DCS, APC,
-; PM, SOS) are skipped.
+; PM, SOS) are skipped. Rows that scroll off the top and screens that
+; are cleared go to the scrollback.
 ;
 ; The C64 has a single background colour, so a coloured ANSI
 ; background is shown as reverse video in that colour. Blink shows as
@@ -24,7 +28,6 @@
 !zone ansi {
 .ROWS = 24
 .LAST_ROW = .ROWS - 1
-.LAST_COL = 39
 .MAX_PARAMS = 8
 .DEFAULT_FG = 7
 .NO_BG = $ff
@@ -56,7 +59,10 @@ ansi_reset:
     sta .bottom
     lda #1
     sta .autowrap
-    sta .cursor_enabled
+    sta ansi_cursor_enabled
+    ldx term_columns
+    dex
+    stx .last_col
     jsr .reset_attributes
     jsr .save_cursor
     ldx #0
@@ -66,7 +72,7 @@ ansi_reset:
 ; Returns the cursor cell for drawing it: X/Y = screen address,
 ; A = colour. C=1 if the cursor is switched off.
 ansi_cursor_cell:
-    lda .cursor_enabled
+    lda ansi_cursor_enabled
     bne +
     sec
     rts
@@ -542,7 +548,7 @@ ansi_output_utf8:
     sty .autowrap
 +   cmp #25
     bne +
-    sty .cursor_enabled
+    sty ansi_cursor_enabled
 +   cmp #47
     bne .mode_done
     jsr .alternate_screen
@@ -569,9 +575,14 @@ ansi_output_utf8:
 .alternate_screen:
     lda .set_mode
     cmp .alternate
-    beq .alternate_done
-    sta .alternate
-    tax
+    bne +
+    rts
++   sta .alternate
+    ldy term_columns
+    cpy #80
+    bne +
+    jmp .alternate_screen80
++   tax
     beq .leave_alternate
     ldx #0
 -   !for .k, 0, 3 {
@@ -598,6 +609,18 @@ ansi_output_utf8:
     bne -
 .alternate_done:
     rts
+
+; The same in 80 columns: the alternate screen has cells of its own
+; (ALT_CELLS80), so only the table of rows changes, and the bitmap is
+; drawn again on the way out.
+.alternate_screen80:
+    jsr term_alternate_rows
+    lda .set_mode
+    beq +
+    ldx #0
+    ldy #.LAST_ROW
+    jmp .erase_rows
++   jmp s80_touch_all
 
 .CSI_COUNT = 29
 .csi_finals:
@@ -676,9 +699,9 @@ ansi_output_utf8:
     clc
     adc ansi_x
     bcs +
-    cmp #.LAST_COL
+    cmp .last_col
     bcc ++
-+   lda #.LAST_COL
++   lda .last_col
 ++  sta ansi_x
     jmp .clear_wrap
 
@@ -737,7 +760,10 @@ ansi_output_utf8:
     txa
 +   jsr .clamp_column
     sta ansi_x
-    jmp .clear_wrap
+    ora ansi_y
+    bne +
+    jsr s80_home            ; often the start of a new frame
++   jmp .clear_wrap
 
 .clamp_row:
     cmp #.ROWS
@@ -746,9 +772,9 @@ ansi_output_utf8:
 +   rts
 
 .clamp_column:
-    cmp #.LAST_COL+1
+    cmp term_columns
     bcc +
-    lda #.LAST_COL
+    lda .last_col
 +   rts
 
 .erase_display:
@@ -756,21 +782,28 @@ ansi_output_utf8:
     beq .erase_below
     cmp #1
     beq .erase_above
-    cmp #2                  ; 3 only clears the scrollback, which
-    bne .erase_done         ; there is none of
+    cmp #3                  ; 3 clears the scrollback, not the screen
+    bne +
+    jmp scrollback_clear
++   cmp #2
+    bne .erase_done
+    jsr .keep_screen
     ldx #0
     ldy #.LAST_ROW
     jsr .erase_rows
-    lda term_mode           ; like ANSI.SYS, the cursor goes home in
-    cmp #TERM_ANSI          ; ANSI mode (VT100 leaves it in place)
-    bne .erase_done
+    lda term_utf8           ; like ANSI.SYS, the cursor goes home in
+    bne .erase_done         ; the ANSI modes (VT100 leaves it in place)
     lda #0
     sta ansi_x
     sta ansi_y
     jmp .clear_wrap
 
 .erase_below:
-    jsr .erase_line_right
+    lda ansi_x              ; from home it clears the screen too
+    ora ansi_y
+    bne +
+    jsr .keep_screen
++   jsr .erase_line_right
     ldx ansi_y
     inx
     ldy #.LAST_ROW
@@ -799,7 +832,7 @@ ansi_output_utf8:
 .erase_line_right:
     lda ansi_x
     sta .from
-    lda #.LAST_COL+1
+    lda term_columns
     sta .to
     ldx ansi_y
     jmp .erase_span
@@ -865,7 +898,8 @@ ansi_output_utf8:
 
 .scroll_up:
     jsr .scroll_count
--   ldx .top
+-   jsr .keep_top_row
+    ldx .top
     ldy .bottom
     jsr .scroll_rows_up
     dec .n
@@ -891,7 +925,7 @@ ansi_output_utf8:
 
 ; .n = character count limited to the rest of the line
 .chars_to_line_end:
-    lda #.LAST_COL+1
+    lda term_columns
     sec
     sbc ansi_x
     sta .limit
@@ -912,7 +946,7 @@ ansi_output_utf8:
     tya
     clc
     adc .n
-    cmp #.LAST_COL+1
+    cmp term_columns
     bcs +
     tay
     lda (zp_a),y
@@ -924,16 +958,17 @@ ansi_output_utf8:
     sta (zp_a),y
     iny
     bne -
-+   lda .i
++   jsr .draw_rest_of_line
+    lda .i
     sta .from
-    lda #.LAST_COL+1
+    lda term_columns
     sta .to
     ldx ansi_y
     jmp .erase_span
 
 .insert_chars:
     jsr .chars_to_line_end
-    ldy #.LAST_COL
+    ldy .last_col
 -   sty .i
     tya
     sec
@@ -951,7 +986,8 @@ ansi_output_utf8:
     sta (zp_a),y
     dey
     bpl -
-+   jmp .erase_n_chars
++   jsr .draw_rest_of_line
+    jmp .erase_n_chars
 
 .erase_chars:
     jsr .chars_to_line_end
@@ -1410,7 +1446,8 @@ ansi_output_utf8:
     lda .draw_color
 .put_color:
     sta (zp_b),y
-    cpy #.LAST_COL
+    jsr .draw_cell
+    cpy .last_col
     bcs +
     inc ansi_x
     rts
@@ -1434,12 +1471,32 @@ ansi_output_utf8:
     lda ansi_y
     cmp .bottom
     bne +
+    jsr .keep_top_row
     ldx .top
     ldy .bottom
     jmp .scroll_rows_up
 +   cmp #.LAST_ROW
     bcs +
     inc ansi_y
++   rts
+
+; Puts the top row into the scrollback before it scrolls away, unless
+; the screen only scrolls within a region (a status bar at the top)
+; or is the alternate screen.
+.keep_top_row:
+    lda .top
+    ora .alternate
+    bne +
+    ldx #0
+    jmp scrollback_add_row
++   rts
+
+; Puts the screen into the scrollback before it is cleared, unless it
+; is the alternate screen (a full-screen program's).
+.keep_screen:
+    lda .alternate
+    bne +
+    jmp scrollback_add_screen
 +   rts
 
 .reverse_index:
@@ -1475,17 +1532,33 @@ ansi_output_utf8:
     sta ansi_x
     rts
 
-; Points zp_a/zp_b at screen/colour row X. Preserves X.
-.point_at_row:
-    lda screen_row_lo,x
-    sta zp_a
-    sta zp_b
-    lda screen_row_hi,x
-    sta zp_a+1
-    clc
-    adc #COLOR_OFFSET_HI
-    sta zp_b+1
-    rts
+; Points zp_a/zp_b at the cells of row X. Preserves X and Y.
+.point_at_row = term_row_cells
+
+; In 80 columns passes the cell at column Y of row ansi_y on to the
+; bitmap. Preserves Y.
+.draw_cell:
+    lda term_columns
+    cmp #80
+    bne +
+    sty .cell_column
+    ldx ansi_y
+    tya
+    iny
+    jsr s80_touch
+    ldy .cell_column
++   rts
+
+; In 80 columns passes row ansi_y from column ansi_x on to the bitmap.
+.draw_rest_of_line:
+    lda term_columns
+    cmp #80
+    bne +
+    ldx ansi_y
+    lda ansi_x
+    ldy #80
+    jmp s80_touch
++   rts
 
 ; X = row; erases columns .from up to (not including) .to
 .erase_span:
@@ -1499,13 +1572,19 @@ ansi_output_utf8:
     sta (zp_b),y
     iny
     bne -
++   lda term_columns
+    cmp #80
+    bne +
+    lda .from
+    ldy .to
+    jmp s80_touch
 +   rts
 
 ; X = row
 .erase_row:
     lda #0
     sta .from
-    lda #.LAST_COL+1
+    lda term_columns
     sta .to
     jmp .erase_span
 
@@ -1524,9 +1603,21 @@ ansi_output_utf8:
     bne -
 ++  rts
 
-; Moves rows X+1..Y up one row and clears row Y.
+; Moves rows X+1..Y up one row and clears row Y. In 80 columns only
+; the table of rows changes, and the bitmap follows later.
 .scroll_rows_up:
-    stx .row_index
+    lda term_columns
+    cmp #80
+    bne +
+    stx .first_row
+    sty .last_row
+    jsr term_rows_up
+    ldx .first_row
+    ldy .last_row
+    jsr s80_scroll_up
+    ldx .last_row
+    jmp .erase_row
++   stx .row_index
     sty .last_row
 -   ldy .row_index
     cpy .last_row
@@ -1541,7 +1632,18 @@ ansi_output_utf8:
 
 ; Moves rows X..Y-1 down one row and clears row X.
 .scroll_rows_down:
+    lda term_columns
+    cmp #80
+    bne +
     stx .first_row
+    sty .last_row
+    jsr term_rows_down
+    ldx .first_row
+    ldy .last_row
+    jsr s80_scroll_down
+    ldx .first_row
+    jmp .erase_row
++   stx .first_row
     sty .row_index
 -   ldy .row_index
     cpy .first_row
@@ -1555,33 +1657,28 @@ ansi_output_utf8:
 +   ldx .first_row
     jmp .erase_row
 
-; Copies screen and colour row X to row Y.
+; Copies the cells of row X to row Y.
 .copy_row:
-    lda screen_row_lo,x
+    sty .to_row
+    jsr .point_at_row
+    lda zp_a
     sta .from_screen+1
-    sta .from_color+1
-    lda screen_row_hi,x
+    lda zp_a+1
     sta .from_screen+2
-    clc
-    adc #COLOR_OFFSET_HI
+    lda zp_b
+    sta .from_color+1
+    lda zp_b+1
     sta .from_color+2
-    lda screen_row_lo,y
-    sta .to_screen+1
-    sta .to_color+1
-    lda screen_row_hi,y
-    sta .to_screen+2
-    clc
-    adc #COLOR_OFFSET_HI
-    sta .to_color+2
-    ldy #.LAST_COL
+    stx .from_row
+    ldx .to_row
+    jsr .point_at_row
+    ldy .last_col
 .from_screen:
 -   lda $ffff,y
-.to_screen:
-    sta $ffff,y
+    sta (zp_a),y
 .from_color:
     lda $ffff,y
-.to_color:
-    sta $ffff,y
+    sta (zp_b),y
     dey
     bpl -
     rts
@@ -1610,7 +1707,7 @@ ansi_y:          !byte 0
 ansi_app_cursor: !byte 0
 
 .autowrap:       !byte 1
-.cursor_enabled: !byte 1
+ansi_cursor_enabled: !byte 1
 .alternate:      !byte 0
 .top:            !byte 0
 .bottom:         !byte .LAST_ROW
@@ -1658,4 +1755,8 @@ ansi_app_cursor: !byte 0
 .first_row: !byte 0
 .last_row:  !byte 0
 .row_index: !byte 0
+.from_row:  !byte 0
+.to_row:    !byte 0
+.cell_column: !byte 0
+.last_col:  !byte 39
 }

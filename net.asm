@@ -5,15 +5,40 @@
 ; next net_poll, which then reads whatever the server has sent and
 ; hands each byte to telnet_receive.
 ;
+; A read is received whole into NET_RX_BUFFER first and only handed
+; on after the transfer: when the WiC64 sends a response, it releases
+; the port a few milliseconds after offering the last byte, so a C64
+; that is still busy with the byte before (clearing or scrolling the
+; screen) would read $ff instead of it.
+;
+; Every request costs the WiC64 work (its firmware starts and ends a
+; task for each transfer), and reading nonstop meant some 90 requests
+; a second even on an idle connection. So while reads bring nothing,
+; net_poll waits longer and longer between them, up to
+; NET_IDLE_JIFFIES; anything received or sent ends the wait.
+;
 ; Routines that talk to the WiC64 return with carry set on failure.
 ; net_status then holds the WiC64 status code, or NET_TIMEOUT if the
 ; device did not answer in time; net_error_text describes it.
+;
+; A timeout of n waits about n - 1 seconds. Now and then a handshake
+; between the C64 and the WiC64 gets lost and both sides wait for the
+; other. The firmware gives up on the transfer after 1.3 s;
+; NET_POLL_TIMEOUT gives up after it, so that the next request
+; finds the WiC64 ready again. Opening a connection takes the firmware
+; up to some 12 s (looking up the name, then 5 s to connect), and
+; NET_OPEN_TIMEOUT waits for its answer, so that a failure shows the
+; WiC64's own error message.
 ;---------------------------------------------------------
 
 !zone net {
 NET_TIMEOUT = $ff
 NET_TX_SIZE = 250
 NET_REQUEST_TIMEOUT = $05
+NET_POLL_TIMEOUT = $03
+NET_OPEN_TIMEOUT = $0f
+NET_IDLE_JIFFIES = 8        ; at most 8/60 s between reads that bring
+                            ; nothing
 
 net_status: !byte 0
 
@@ -24,8 +49,6 @@ net_init:
     bcs +
     bne +
     +wic64_dont_disable_irqs
-    +wic64_execute .set_transfer_timeout, net_response, NET_REQUEST_TIMEOUT
-    +wic64_execute .set_remote_timeout, net_response, NET_REQUEST_TIMEOUT
     lda #0
     clc
 +   rts
@@ -44,7 +67,8 @@ net_open:
 +   sty .open_size
     lda #0
     sta .tx_length
-    +wic64_execute .open_request, net_response, NET_REQUEST_TIMEOUT
+    sta .idle_wait
+    +wic64_execute .open_request, net_response, NET_OPEN_TIMEOUT
     jmp .result
 
 net_close:
@@ -64,35 +88,87 @@ net_send:
     rts
 
 ; Sends the queued bytes, then passes everything received to
-; telnet_receive.
+; telnet_receive; or, while the connection is idle, does nothing until
+; it is time to read again.
 net_poll:
     lda .tx_length
-    beq .read
+    bne .write
+    lda JIFFY_LO
+    sec
+    sbc .last_read
+    cmp .idle_wait
+    bcs .read
+    clc                     ; not yet
+    rts
+
+.write:
     sta .tx_size
     +wic64_execute .write_request, net_response, NET_REQUEST_TIMEOUT
     jsr .result
     bcs .poll_done
     lda #0
     sta .tx_length
+    sta .idle_wait          ; an answer is likely to follow soon
 
 .read:
-    +wic64_set_store_instruction .deliver
-    +wic64_execute .read_request, net_response, NET_REQUEST_TIMEOUT
+    +wic64_execute .read_request, NET_RX_BUFFER, NET_POLL_TIMEOUT
     php
     pha
-    +wic64_reset_store_instruction
+    lda JIFFY_LO
+    sta .last_read
     pla
     plp
-    jmp .result
+    jsr .result
+    bcs .poll_done
+    lda wic64_response_size
+    ora wic64_response_size+1
+    beq .nothing_read
+    lda #0                  ; data: read again straight away
+    sta .idle_wait
+    jmp .deliver
+.nothing_read:
+    lda .idle_wait          ; wait 1, 2, 4, ... jiffies
+    asl
+    bne +
+    lda #1
++   cmp #NET_IDLE_JIFFIES + 1
+    bcc +
+    lda #NET_IDLE_JIFFIES
++   sta .idle_wait
+    clc
 .poll_done:
     rts
 
-; Not called: wic64_set_store_instruction copies this one 3-byte
-; instruction into the WiC64 receive loop, which then calls
-; telnet_receive with each received byte in A (it must preserve X and
-; Y). It has to be a jsr, and nothing after it is part of it.
+; Hands the wic64_response_size bytes in NET_RX_BUFFER to
+; telnet_receive. Returns C=0.
 .deliver:
+    lda #<NET_RX_BUFFER
+    sta .rx+1
+    lda #>NET_RX_BUFFER
+    sta .rx+2
+    lda wic64_response_size
+    sta .rx_left
+    lda wic64_response_size+1
+    sta .rx_left+1
+-   lda #R6510_NO_BASIC     ; the buffer is under the BASIC ROM
+    sta R6510
+.rx:
+    lda $ffff
+    ldx #R6510_DEFAULT
+    stx R6510
     jsr telnet_receive
+    inc .rx+1
+    bne +
+    inc .rx+2
++   lda .rx_left
+    bne +
+    dec .rx_left+1
++   dec .rx_left
+    lda .rx_left
+    ora .rx_left+1
+    bne -
+    clc
+    rts
 
 ; Turns the outcome of a WiC64 request (C = timeout, A = status) into
 ; C=1 on any failure, recording net_status.
@@ -131,9 +207,10 @@ net_error_text:
 .timeout_message: !pet "WiC64 did not answer in time", 0
 
 .y: !byte 0
+.rx_left:    !word 0         ; bytes still to hand on
+.last_read: !byte 0         ; JIFFY_LO at the last read
+.idle_wait: !byte 0         ; jiffies to wait after it
 
-.set_transfer_timeout: !byte "R", WIC64_SET_TRANSFER_TIMEOUT, $01, $00, NET_REQUEST_TIMEOUT
-.set_remote_timeout:   !byte "R", WIC64_SET_REMOTE_TIMEOUT, $01, $00, NET_REQUEST_TIMEOUT
 .status_request:       !byte "R", WIC64_GET_STATUS_MESSAGE, $01, $00, $00
 .read_request:         !byte "R", WIC64_TCP_READ, $00, $00
 .close_request:        !byte "R", WIC64_TCP_CLOSE, $00, $00

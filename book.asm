@@ -642,14 +642,14 @@ book_menu:
 .count: !byte 9
 .entries:
     +book_entry "8bit.hoyvision.com:6502", TERM_PETSCII
-    +book_entry "cib.dyndns.org:6405", TERM_PETSCII
+    +book_entry "particlesbbs.dyndns.org:6400", TERM_PETSCII
     +book_entry "cottonwoodbbs.dyndns.org:6502", TERM_PETSCII
     +book_entry "rapidfire.hopto.org:64128", TERM_PETSCII
     +book_entry "raveolution.hopto.org:64128", TERM_PETSCII
     +book_entry "bbs.fozztexx.com:23", TERM_PETSCII
     +book_entry "bbs.retrocampus.com:6510", TERM_PETSCII
     +book_entry "vert.synchro.net:23", TERM_ANSI
-    +book_entry "telehack.com:23", TERM_UTF8
+    +book_entry "telehack.com:23", TERM_UTF8_80
     !fill (.MAX_ENTRIES - 9) * .ENTRY_SIZE, 0
 .file_end:
 .FILE_SIZE = .file_end - .file
@@ -673,7 +673,7 @@ book_menu:
 
 .title:
     !pet PET_RVS_ON, PET_LIGHT_GREEN
-    !pet "        WiC64 Telnet Client 3.1        ", PET_RVS_OFF, 0
+    !pet "        WiC64 Telnet Client 3.2        ", PET_RVS_OFF, 0
 .help:
     !pet PET_WHITE, "RETURN", PET_GREEN, "/", PET_WHITE, "1-9", PET_GREEN, " connect  "
     !pet PET_WHITE, "CRSR", PET_GREEN, " select", 13

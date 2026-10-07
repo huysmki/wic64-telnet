@@ -1,5 +1,5 @@
 Screen:
-  |        WiC64 Telnet Client 3.1         |
+  |        WiC64 Telnet Client 3.2         |
   |                                        |
   | 1 xyit.hoyvision.com:6502     PETSCII  |
   | 2 cottonwoodbbs.dyndns.org:65 PETSCII  |
@@ -8,7 +8,7 @@ Screen:
   | 5 bbs.fozztexx.com:23         PETSCII  |
   | 6 bbs.retrocampus.com:6510    PETSCII  |
   | 7 vert.synchro.net:23         ANSI     |
-  | 8 telehack.com:23             UTF-8    |
+  | 8 telehack.com:23             UTF-8 80 |
   | 9 new:23                      UTF-8    |
   |                                        |
   |                                        |
@@ -26,7 +26,7 @@ Screen:
   |        F5 echo     F7 menu             |
 
 Screen codes and colours:
-   0 a0a0a0a0a0a0a0a0d789c3b6b4a0d4858c8e8594a0c38c89858e94a0b3aeb1a0a0a0a0a0a0a0a020
+   0 a0a0a0a0a0a0a0a0d789c3b6b4a0d4858c8e8594a0c38c89858e94a0b3aeb2a0a0a0a0a0a0a0a020
      ddddddddddddddddddddddddddddddddddddddd5
    1 20202020202020202020202020202020202020202020202020202020202020202020202020202020
      5555555555555555555555555555555555555555
@@ -44,7 +44,7 @@ Screen codes and colours:
      5555555555555555555555555555555555555555
    8 203720160512142e13190e0308120f2e0e05143a3233202020202020202020414e53492020202020
      5555555555555555555555555555555555555555
-   9 20382014050c050801030b2e030f0d3a3233202020202020202020202020205554462d3820202020
+   9 20382014050c050801030b2e030f0d3a3233202020202020202020202020205554462d3820383020
      5555555555555555555555555555555555555555
   10 2039200e05173a3233202020202020202020202020202020202020202020205554462d3820202020
      5555555555555555555555555555555555555555

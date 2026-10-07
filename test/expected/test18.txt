@@ -1,0 +1,154 @@
+Screen:
+  |row 09 # scrolls ======================================================== end   |
+  |row 10 # scrolls ======================================================== end   |
+  |row 11 # scrolls ======================================================== end   |
+  |row 12 # scrolls ======================================================== end   |
+  |row 13 # scrolls ======================================================== end   |
+  |row 14 # scrolls ======================================================== end   |
+  |row 15 # scrolls ======================================================== end   |
+  |row 16 # scrolls ======================================================== end   |
+  |row 17 # scrolls ======================================================== end   |
+  |row 18 # scrolls ======================================================== end   |
+  |row 19 # scrolls ======================================================== end   |
+  |row 20 # scrolls ======================================================== end   |
+  |row 21 # scrolls ======================================================== end   |
+  |row 22 # scrolls ======================================================== end   |
+  |row 23 # scrolls ======================================================== end   |
+  |row 24 # scrolls ======================================================== end   |
+  |row 25 # scrolls ======================================================== end   |
+  |row 26 # scrolls ======================================================== end   |
+  |row 27 # scrolls ======================================================== end   |
+  |row 28 # scrolls ======================================================== end   |
+  |row 29 # scrolls ======================================================== end   |
+  |row 30 # scrolls ======================================================== end   |
+  |back from the alternate screen                                                  |
+  |Cafe #-# $                                                                      |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |                                        |
+  |########################################|
+  | cottonwoodbbs.dyndns.org:6502          |
+  | Mode UTF-8 80 Echo off  00:00:02       |
+  | M next mode    E local echo            |
+  | S scrollback   H hang up               |
+  | B send break   I interrupt             |
+  | A are you there                        |
+  |########################################|
+
+Screen codes and colours:
+   0 120f17203039205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+   1 120f17203130205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+   2 120f17203131205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+   3 120f17203132205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+   4 120f17203133205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+   5 120f17203134205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+   6 120f17203135205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+   7 120f17203136205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+   8 120f17203137205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+   9 120f17203138205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  10 120f17203139205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  11 120f17203230205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  12 120f17203231205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  13 120f17203232205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  14 120f17203233205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  15 120f17203234205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  16 120f17203235205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  17 120f17203236205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  18 120f17203237205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  19 120f17203238205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  20 120f17203239205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  21 120f17203330205d201303120f0c0c13203d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d20050e04202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  22 0201030b2006120f0d2014080520010c1405120e0114052013031205050e2020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  23 430106052070406e202420202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020
+     ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  24 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  25 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  26 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  27 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  28 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  29 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  30 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  31 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  32 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  33 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  34 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  35 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  36 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  37 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  38 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  39 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  40 20202020202020202020202020202020202020202020202020202020202020202020202020202020
+     0000000000000000000000000000000000000000
+  41 63636363636363636363636363636363636363636363636363636363636363636363636363636363
+     5555555555555555555555555555555555555555
+  42 20030f14140f0e170f0f040202132e04190e040e132e0f12073a3635303220202020202020202020
+     5555555555555555555555555555555555555555
+  43 204d0f0405205554462d38203830204503080f200f0606202030303a30303a303220202020202020
+     5555551111111115555511111111111115555555
+  44 204d200e051814200d0f04052020202045200c0f03010c200503080f202020202020202020202020
+     5155555555555555155555555555555555555555
+  45 2053201303120f0c0c0201030b202020482008010e07201510202020202020202020202020202020
+     5155555555555555155555555555555555555555
+  46 20422013050e0420021205010b2020204920090e1405121215101420202020202020202020202020
+     5155555555555555155555555555555555555555
+  47 20412001120520190f15201408051205202020202020202020202020202020202020202020202020
+     5155555555555555555555555555555555555555
+  48 64646464646464646464646464646464646464646464646464646464646464646464646464646464
+     5555555555555555555555555555555555555555
+
+Bitmap: cd0797817ad8b6d70901f65ed51eb9c4744ee410
+
+Sent (0 bytes):

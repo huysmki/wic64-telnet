@@ -1,5 +1,5 @@
 ;---------------------------------------------------------
-; WiC64 Telnet Client 3.1
+; WiC64 Telnet Client 3.2
 ;
 ; Build:       acme -f cbm -o telnet.prg main.asm
 ; Test build:  acme -f cbm -DTEST=1 -DSCENARIO=<n> -o test.prg main.asm
@@ -11,7 +11,9 @@
 ;   term.asm      terminal modes, keyboard, cursor
 ;   ansi.asm      ANSI/VT100 screen driver
 ;   charmaps.asm  ASCII character set and translation tables
+;   screen80.asm  80 columns on a bitmap
 ;   session.asm   connection loop, session keys, status line
+;   scrollback.asm rows that left the screen, and a viewer for them
 ;   book.asm      address book start screen, saved to disk
 ;   ui.asm        printing, popup boxes, line input, clock
 ;---------------------------------------------------------
@@ -42,10 +44,10 @@ wic64_include_enter_portal = 1
 !src "term.asm"
 !src "ansi.asm"
 !src "charmaps.asm"
-!src "session.asm"
-!src "book.asm"
+!src "screen80.asm"
 
 start:
+    jsr move_high_part
     jsr ui_screen_menu
     jsr net_init
     bcs .no_device
@@ -77,7 +79,58 @@ main_menu:
     !pet "?Legacy firmware detected", 13, 13
     !pet "Firmware 2.0.0 or later required", 13, 0
 
-program_end:
-!if program_end > CHARSET {
+; The VIC needs the character set below $4000, so the program is in
+; two parts around it: the first runs where it is loaded, the second
+; is stored right after it and moved to HIGH_PART at start-up.
+; Whole pages are moved, last page first, as the two places overlap.
+; Only once: the move and the character set overwrite where the high
+; part was loaded, and the program can be started again with RUN.
+HIGH_PART = CHARSET + $0800
+
+move_high_part:
+    lda .high_part_moved
+    bne .moved
+    inc .high_part_moved
+    lda #<(high_part_load + (HIGH_PAGES - 1) * $100)
+    sta zp_a
+    lda #>(high_part_load + (HIGH_PAGES - 1) * $100)
+    sta zp_a+1
+    lda #<(HIGH_PART + (HIGH_PAGES - 1) * $100)
+    sta zp_b
+    lda #>(HIGH_PART + (HIGH_PAGES - 1) * $100)
+    sta zp_b+1
+    ldx #HIGH_PAGES
+    ldy #0
+-   lda (zp_a),y
+    sta (zp_b),y
+    iny
+    bne -
+    dec zp_a+1
+    dec zp_b+1
+    dex
+    bne -
+.moved:
+    rts
+
+.high_part_moved: !byte 0
+
+low_end:
+!if low_end > CHARSET {
     !error "Program overlaps the character set at CHARSET"
+}
+
+high_part_load:
+!pseudopc HIGH_PART {
+!src "session.asm"
+!src "scrollback.asm"
+!src "book.asm"
+}
+high_part_end:
+HIGH_PAGES = (high_part_end - high_part_load + $ff) >> 8
+
+!if HIGH_PART - high_part_load < $100 {
+    !error "Moving the high part a page at a time would overwrite it"
+}
+!if HIGH_PART + HIGH_PAGES * $100 > PROGRAM_LIMIT {
+    !error "Program overlaps the memory at PROGRAM_LIMIT"
 }

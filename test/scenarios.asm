@@ -266,3 +266,164 @@ test_keys:
     !byte TK_IDLE, 5
     !byte TK_END
 }
+
+!if SCENARIO = 13 {
+; The server echoes for a while (e.g. a MUD hiding a password), then
+; stops: local echo comes back on
+test_rx:
+    !byte IAC, $fb, 1               ; WILL ECHO
+    !pet "Password: "
+    !byte IAC, $fc, 1               ; WONT ECHO
+    !byte IAC, $fc, 1               ; WONT ECHO again: no second answer
+    !pet 13, "Name: "
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte "1"                       ; connect to server 1 (PETSCII)
+    !byte TK_WAIT_RX
+    !text "A", "b"                  ; echoed locally
+    !byte TK_IDLE, 5
+    !byte TK_END
+}
+
+!if SCENARIO = 14 {
+; ANSI scrollback: rows scrolled off and a cleared screen fill the
+; (in test builds 1 KB) ring, which drops the oldest; HOME shows the
+; oldest row kept
+test_rx:
+    !for .i, 1, 60 {
+        !text "ansi line ", $30 + .i DIV 10, $30 + .i % 10, " of the test", 13, 10
+    }
+    !text ESC, "[2J", "after the clear", 13, 10
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte KEY_DOWN, "T"             ; server 2 -> ANSI
+    !byte KEY_RETURN
+    !byte TK_WAIT_RX
+    !byte KEY_F8, KEY_HOME
+    !byte TK_IDLE, 5
+    !byte TK_END
+}
+
+!if SCENARIO = 15 {
+; PETSCII scrollback: a logical line of two rows scrolls off whole,
+; the screen is kept when the BBS clears it; opened from the menu
+test_rx:
+    !pet "a long line that is two rows on the screen, from the bbs", 13
+    !for .i, 1, 30 {
+        !pet "petscii line ", $30 + .i DIV 10, $30 + .i % 10, 13
+    }
+    !byte $93
+    !pet "after the clear", 13
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte "1"                       ; connect to server 1 (PETSCII)
+    !byte TK_WAIT_RX
+    !byte KEY_F7, "S", KEY_HOME
+    !byte TK_IDLE, 5
+    !byte TK_END
+}
+
+!if SCENARIO = 16 {
+; Leaving the scrollback puts the screen back; its keys are not sent
+test_rx:
+    !for .i, 1, 30 {
+        !text "line ", $30 + .i DIV 10, $30 + .i % 10, 13, 10
+    }
+    !text "$ "
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte KEY_DOWN, "T"             ; server 2 -> ANSI
+    !byte KEY_RETURN
+    !byte TK_WAIT_RX
+    !byte KEY_F8, KEY_UP, KEY_F1, KEY_DOWN, KEY_RETURN
+    !text "x"
+    !byte TK_IDLE, 5
+    !byte TK_END
+}
+
+!if SCENARIO = 17 {
+; ANSI 80: the full width, colours, wrapping, editing near the right
+; edge, a position report beyond column 40, NAWS 80 x 24, the
+; hand-drawn glyphs
+test_rx:
+    !byte IAC, $fd, 31              ; DO NAWS -> 80 x 24
+    !text ESC, "[2J", ESC, "[1;33m", $c9
+    !fill 78, $cd
+    !text $bb, 13, 10, $ba, ESC, "[0;36m", " ANSI in 80 columns", ESC, "[1;33m"
+    !text ESC, "[80G", $ba, 13, 10, $c8
+    !fill 78, $cd
+    !text $bc, 13, 10
+    !text ESC, "[0m", "Colours: ", ESC, "[31mR", ESC, "[32mG", ESC, "[34mB"
+    !text ESC, "[1;31mR", ESC, "[32mG", ESC, "[34mB", ESC, "[0m", 13, 10
+    !text ESC, "[44;37m Blue bar ", ESC, "[K", ESC, "[0m", 13, 10
+    !text ESC, "[7mReverse", ESC, "[0m normal", 13, 10
+    !text "The quick brown fox jumps over the lazy dog. THE QUICK BROWN FOX "
+    !text "JUMPS OVER THE LAZY DOG. 0123456789", 13, 10
+    !text ESC, "[12;1HABCDEFGHIJ", ESC, "[12;3H", ESC, "[2P"
+    !text ESC, "[13;71HABCDEFGHIJ", ESC, "[13;73H", ESC, "[2@"
+    !text ESC, "[15;1H", "Blocks: ", $b0, $b1, $b2, $db, $dc, $df, $dd, $de
+    !text " Lines: ", $da, $c4, $c2, $c4, $bf, " ", $c3, $c4, $c5, $c4, $b4
+    !text " ", $c0, $c4, $c1, $c4, $d9
+    !text ESC, "[16;1H", "ASCII: {|}~ _^` ", $5c, " [] @ % mMwW N"
+    !text ESC, "[10;70H", ESC, "[6n", "at 10;70"
+    !text ESC, "[23;1H", "Type: "
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte KEY_DOWN, "T", "T", "T"   ; server 2 -> ANSI 80
+    !byte KEY_RETURN
+    !byte TK_WAIT_RX
+    !text "A", "b"
+    !byte TK_IDLE, 5
+    !byte TK_END
+}
+
+!if SCENARIO = 18 {
+; UTF-8 80: scrolling, the alternate screen, a box over the bitmap
+; (rows made long with REP, to keep the test data small)
+test_rx:
+    !for .i, 1, 30 {
+        !text "row ", $30 + .i DIV 10, $30 + .i % 10, " ", $e2, $94, $82, " scrolls ="
+        !text ESC, "[55b", " end", 13, 10
+    }
+    !text ESC, "[?1049h", ESC, "[H", ESC, "[2J", "Alternate screen"
+    !text ESC, "[?1049l", "back from the alternate screen", 13, 10
+    !text "Caf", $c3, $a9, " ", $e2, $94, $8c, $e2, $94, $80, $e2, $94, $90, " $ "
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !text KEY_DOWN, KEY_DOWN, "T", "T", "T", "T"   ; server 3 -> UTF-8 80
+    !byte KEY_RETURN
+    !byte TK_WAIT_RX
+    !byte KEY_F7                    ; session menu, shown at the end
+    !byte TK_IDLE, 5
+    !byte TK_END
+}
+
+!if SCENARIO = 19 {
+; Scrollback in 80 columns: long rows fill the (1 KB) ring
+test_rx:
+    !for .i, 1, 40 {
+        !text "line ", $30 + .i DIV 10, $30 + .i % 10, ": -", ESC, "[58b", " end", 13, 10
+    }
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte KEY_DOWN, "T", "T", "T"   ; server 2 -> ANSI 80
+    !byte KEY_RETURN
+    !byte TK_WAIT_RX
+    !byte KEY_F8, KEY_HOME
+    !byte TK_IDLE, 5
+    !byte TK_END
+}

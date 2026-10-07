@@ -23,11 +23,18 @@ PLOT   = $fff0
 BASIC_INLIN  = $a560
 INPUT_BUFFER = $0200
 
+; Processor port: memory configuration
+R6510 = $01
+R6510_DEFAULT     = $37    ; BASIC, KERNAL and I/O
+R6510_NO_BASIC    = $36    ; RAM at $a000-$bfff
+R6510_NO_KERNAL   = $35    ; RAM at $a000-$bfff and $e000-$ffff
+
 ; KERNAL variables
 JIFFY_MID     = $a1
 JIFFY_LO      = $a2
 LAST_DEVICE   = $ba
 REVERSE_FLAG  = $c7
+CURSOR_ROW    = $d6     ; physical screen row of the cursor
 LINE_PTR      = $d1     ; start of the current logical screen line
 CURSOR_COL    = $d3     ; column within the logical line (0-79)
 QUOTE_MODE    = $d4
@@ -58,6 +65,7 @@ KEY_F1     = $85
 KEY_F3     = $86
 KEY_F5     = $87
 KEY_F7     = $88
+KEY_F8     = $8c
 KEY_UP     = $91
 KEY_CLR    = $93
 KEY_LEFT   = $9d
@@ -92,13 +100,53 @@ zp_a = $fb
 zp_b = $fd
 
 ; Memory map
-;   $0801-$37ff  program
+;   $0801-$37ff  program, first part
 ;   $3800-$3fff  CHARSET: ASCII character set for the ANSI modes
-;   $4000-       uninitialised buffers
+;   $4000-$57ff  program, second part
+;   $5800-$5fff  40 columns: the screen while the scrollback is shown
+;   $6000-$7fff  80 columns: the cells of the screen and of the
+;                alternate screen
+;   $8000-$83ff  80 columns: FONT80
+;   $6000-$9fff  SCROLLBACK ring in 40 columns, from $8400 in 80. Test
+;                builds use 1 KB, so that it fills up, and log what the
+;                client sent to the fake server from $9000.
+;   $a000-$bfff  NET_RX_BUFFER: what one read from the WiC64 brought (at
+;                most 8 KB), in the RAM under the BASIC ROM (BASIC_INLIN
+;                is used for line input)
+;   $c000-$cbff  BSS: uninitialised buffers
+;   $cc00-$cfe7  80 columns: colours of the bitmap (VIC bank 3)
+;   $e000-$ff3f  80 columns: the bitmap, in the RAM under the KERNAL ROM
+;   $fffa-$ffff  80 columns: interrupt vectors for while the KERNAL ROM
+;                is switched off
 CHARSET          = $3800
-BSS              = $4000
+PROGRAM_LIMIT    = $5800
+scrollback_screen = $5800         ; 25 rows of screen codes
+scrollback_colors = $5c00         ; and of colours, laid out like
+                                  ; SCREEN and COLOR_RAM
+CELLS80          = $6000          ; 24 rows of 80 screen codes, and
+CELLS80_COLORS   = CELLS80 + $0800 ; of colours
+ALT_CELLS80      = $7000          ; the same for the alternate screen
+FONT80           = $8000          ; 128 glyphs of 8 rows, 4 pixels each
+SCROLLBACK_40    = $6000
+SCROLLBACK_80    = $8400
+!if TEST {
+    SCROLLBACK_40_END = SCROLLBACK_40 + $0400
+    SCROLLBACK_80_END = SCROLLBACK_80 + $0400
+} else {
+    SCROLLBACK_40_END = $a000
+    SCROLLBACK_80_END = $a000
+}
+NET_RX_BUFFER    = $a000          ; 8 KB: the most the WiC64 firmware
+                                  ; reads at a time
+BSS              = $c000
 box_save_buffer  = BSS            ; 8 rows * (40 screen + 40 color)
 box_save_links   = BSS + $0280    ; 25 bytes
 net_response     = BSS + $0300    ; 256 bytes
-book_load_buffer = BSS + $0400    ; 1 KB
-alt_screen_buffer = BSS + $0800   ; 24 rows * (40 screen + 40 color)
+alt_screen_buffer = BSS + $0400   ; 24 rows * (40 screen + 40 color)
+book_load_buffer = alt_screen_buffer ; 1 KB, only used at start-up
+BSS_END          = alt_screen_buffer + 24 * 80
+MATRIX80         = $cc00
+BITMAP80         = $e000
+!if BSS_END > MATRIX80 {
+    !error "BSS runs into MATRIX80"
+}
