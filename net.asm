@@ -20,12 +20,23 @@
 ; Routines that talk to the WiC64 return with carry set on failure.
 ; net_status then holds the WiC64 status code, or NET_TIMEOUT if the
 ; device did not answer in time; net_error_text describes it.
+;
+; A timeout of n waits about n - 1 seconds. Now and then a handshake
+; between the C64 and the WiC64 gets lost and both sides wait for the
+; other. The firmware gives up on the transfer after 1.3 s;
+; NET_POLL_TIMEOUT gives up after it, so that the next request
+; finds the WiC64 ready again. Opening a connection takes the firmware
+; up to some 12 s (looking up the name, then 5 s to connect), and
+; NET_OPEN_TIMEOUT waits for its answer, so that a failure shows the
+; WiC64's own error message.
 ;---------------------------------------------------------
 
 !zone net {
 NET_TIMEOUT = $ff
 NET_TX_SIZE = 250
 NET_REQUEST_TIMEOUT = $05
+NET_POLL_TIMEOUT = $03
+NET_OPEN_TIMEOUT = $0f
 NET_IDLE_JIFFIES = 8        ; at most 8/60 s between reads that bring
                             ; nothing
 
@@ -38,8 +49,6 @@ net_init:
     bcs +
     bne +
     +wic64_dont_disable_irqs
-    +wic64_execute .set_transfer_timeout, net_response, NET_REQUEST_TIMEOUT
-    +wic64_execute .set_remote_timeout, net_response, NET_REQUEST_TIMEOUT
     lda #0
     clc
 +   rts
@@ -59,7 +68,7 @@ net_open:
     lda #0
     sta .tx_length
     sta .idle_wait
-    +wic64_execute .open_request, net_response, NET_REQUEST_TIMEOUT
+    +wic64_execute .open_request, net_response, NET_OPEN_TIMEOUT
     jmp .result
 
 net_close:
@@ -102,7 +111,7 @@ net_poll:
     sta .idle_wait          ; an answer is likely to follow soon
 
 .read:
-    +wic64_execute .read_request, NET_RX_BUFFER, NET_REQUEST_TIMEOUT
+    +wic64_execute .read_request, NET_RX_BUFFER, NET_POLL_TIMEOUT
     php
     pha
     lda JIFFY_LO
@@ -202,8 +211,6 @@ net_error_text:
 .last_read: !byte 0         ; JIFFY_LO at the last read
 .idle_wait: !byte 0         ; jiffies to wait after it
 
-.set_transfer_timeout: !byte "R", WIC64_SET_TRANSFER_TIMEOUT, $01, $00, NET_REQUEST_TIMEOUT
-.set_remote_timeout:   !byte "R", WIC64_SET_REMOTE_TIMEOUT, $01, $00, NET_REQUEST_TIMEOUT
 .status_request:       !byte "R", WIC64_GET_STATUS_MESSAGE, $01, $00, $00
 .read_request:         !byte "R", WIC64_TCP_READ, $00, $00
 .close_request:        !byte "R", WIC64_TCP_CLOSE, $00, $00
