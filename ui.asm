@@ -81,6 +81,84 @@ print_field:
 .left: !byte 0
 }
 
+!zone print_number {
+; Prints print_number_value (24 bits) right-aligned in X columns.
+print_number:
+    stx .width
+    ldx #0
+    stx .digit_count
+    ldy #5 * 3              ; powers of ten, 100000 down to 10
+.next_power:
+    lda #0
+    sta .digit
+-   lda print_number_value  ; subtract while it fits
+    sec
+    sbc .powers-3,y
+    pha
+    lda print_number_value+1
+    sbc .powers-2,y
+    pha
+    lda print_number_value+2
+    sbc .powers-1,y
+    bcc +
+    sta print_number_value+2
+    pla
+    sta print_number_value+1
+    pla
+    sta print_number_value
+    inc .digit
+    bne -
++   pla
+    pla
+    lda .digit
+    ora .digit_count        ; no leading zeros
+    beq +
+    lda .digit
+    ora #"0"
+    ldx .digit_count
+    sta .digits,x
+    inc .digit_count
++   dey
+    dey
+    dey
+    bne .next_power
+    lda print_number_value  ; the ones
+    ora #"0"
+    ldx .digit_count
+    sta .digits,x
+    inx
+    stx .digit_count
+    lda .width              ; leading spaces
+    sec
+    sbc .digit_count
+    tax
+    beq +
+-   lda #" "
+    jsr CHROUT
+    dex
+    bne -
++   ldx #0
+-   lda .digits,x
+    jsr CHROUT
+    inx
+    cpx .digit_count
+    bne -
+    rts
+
+.powers:
+    !byte <10, >10, ^10
+    !byte <100, >100, ^100
+    !byte <1000, >1000, ^1000
+    !byte <10000, >10000, ^10000
+    !byte <100000, >100000, ^100000
+
+print_number_value: !fill 3, 0
+.digits:      !fill 8, 0
+.digit:       !byte 0
+.digit_count: !byte 0
+.width:       !byte 0
+}
+
 !zone print_dec {
 ; Prints A (0-99) in decimal without leading zero.
 print_dec:

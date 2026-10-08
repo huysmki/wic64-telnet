@@ -15,6 +15,11 @@
 ;               or 80 x 24
 ;
 ; Everything else is refused.
+;
+; The server's data goes to telnet_sink: xfer_watch, which passes it on
+; to term_output, unless a file transfer takes it. telnet_negotiated tells whether the server has
+; spoken Telnet at all: if not, a transfer takes its bytes as they come,
+; as $ff in a file would otherwise start a Telnet command.
 ;---------------------------------------------------------
 
 !zone telnet {
@@ -58,10 +63,17 @@ TTYPE_SEND = 1
 .local_on:  !fill .OPTION_COUNT, 0
 .remote_on: !fill .OPTION_COUNT, 0
 
+telnet_sink:       !word xfer_watch
+telnet_negotiated: !byte 0
+!if <telnet_sink = $ff {
+    !error "jmp (telnet_sink) would read its high byte from the wrong page"
+}
+
 ; Call before each new connection.
 telnet_reset:
     lda #.DATA
     sta .state
+    sta telnet_negotiated
     ldx #.OPTION_COUNT-1
 -   sta .local_on,x
     sta .remote_on,x
@@ -78,7 +90,7 @@ telnet_receive:
 
     cmp #TN_IAC
     beq .enter_iac
-    jsr term_output
+    jsr .to_sink
     jmp .exit
 
 .enter_iac:
@@ -93,7 +105,7 @@ telnet_receive:
     stx .state
     cmp #TN_IAC
     bne +
-    jsr term_output         ; IAC IAC is a literal $ff
+    jsr .to_sink            ; IAC IAC is a literal $ff
     jmp .exit
 +   cmp #TN_SB
     bne +
@@ -101,12 +113,15 @@ telnet_receive:
     stx .state
     ldx #0
     stx .sub_length
-    jmp .exit
+    jmp .negotiated
 +   cmp #TN_WILL
     bcc .exit               ; NOP, GA and friends need no action
     sta .verb
     ldx #.OPTION
     stx .state
+.negotiated:
+    lda #1
+    sta telnet_negotiated
     jmp .exit
 
 .not_iac:
@@ -150,6 +165,9 @@ telnet_receive:
     ldx .x
     ldy .y
     rts
+
+.to_sink:
+    jmp (telnet_sink)
 
 ; A = option, .verb = WILL/WONT/DO/DONT
 .negotiate:

@@ -11,6 +11,11 @@
 ; that is still busy with the byte before (clearing or scrolling the
 ; screen) would read $ff instead of it.
 ;
+; File transfers take the server's bytes one at a time instead
+; (net_read_byte), as a protocol waits for particular answers, and send
+; their own answers at once (net_flush). Whatever a transfer leaves in
+; the buffer goes to telnet_receive with the next net_poll.
+;
 ; Every request costs the WiC64 work (its firmware starts and ends a
 ; task for each transfer), and reading nonstop meant some 90 requests
 ; a second even on an idle connection. So while reads bring nothing,
@@ -68,6 +73,8 @@ net_open:
     lda #0
     sta .tx_length
     sta .idle_wait
+    sta .rx_left
+    sta .rx_left+1
     +wic64_execute .open_request, net_response, NET_OPEN_TIMEOUT
     jmp .result
 
@@ -91,7 +98,11 @@ net_send:
 ; telnet_receive; or, while the connection is idle, does nothing until
 ; it is time to read again.
 net_poll:
-    lda .tx_length
+    lda .rx_left            ; left over from a file transfer
+    ora .rx_left+1
+    beq +
+    jmp .deliver_rest
++   lda .tx_length
     bne .write
     lda JIFFY_LO
     sec
@@ -102,12 +113,9 @@ net_poll:
     rts
 
 .write:
-    sta .tx_size
-    +wic64_execute .write_request, net_response, NET_REQUEST_TIMEOUT
-    jsr .result
+    jsr net_flush
     bcs .poll_done
     lda #0
-    sta .tx_length
     sta .idle_wait          ; an answer is likely to follow soon
 
 .read:
@@ -142,6 +150,50 @@ net_poll:
 ; Hands the wic64_response_size bytes in NET_RX_BUFFER to
 ; telnet_receive. Returns C=0.
 .deliver:
+    jsr .rewind
+.deliver_rest:
+-   jsr .take_byte
+    jsr telnet_receive
+    lda .rx_left
+    ora .rx_left+1
+    bne -
+    clc
+    rts
+
+; Sends the bytes queued with net_send now. Returns C=1 on failure.
+net_flush:
+    lda .tx_length
+    bne +
+    clc
+    rts
++   sta .tx_size
+    +wic64_execute .write_request, net_response, NET_REQUEST_TIMEOUT
+    jsr .result
+    bcs +
+    lda #0
+    sta .tx_length
++   rts
+
+; Returns C=0 and the server's next byte in A, as it came (Telnet
+; commands included), reading from the WiC64 when the buffer is empty;
+; C=1 if nothing has come in, or the WiC64 did not answer.
+net_read_byte:
+    lda .rx_left
+    ora .rx_left+1
+    bne .take_byte
+    +wic64_execute .read_request, NET_RX_BUFFER, NET_POLL_TIMEOUT
+    jsr .result
+    bcs +
+    lda wic64_response_size
+    ora wic64_response_size+1
+    sec
+    beq +
+    jsr .rewind
+    jmp .take_byte
++   rts
+
+; Points at the start of what the last read brought.
+.rewind:
     lda #<NET_RX_BUFFER
     sta .rx+1
     lda #>NET_RX_BUFFER
@@ -150,13 +202,18 @@ net_poll:
     sta .rx_left
     lda wic64_response_size+1
     sta .rx_left+1
--   lda #R6510_NO_BASIC     ; the buffer is under the BASIC ROM
+    rts
+
+; Returns the next byte from NET_RX_BUFFER in A, C=0. Preserves X
+; and Y.
+.take_byte:
+    lda #R6510_NO_BASIC     ; the buffer is under the BASIC ROM
     sta R6510
 .rx:
     lda $ffff
-    ldx #R6510_DEFAULT
-    stx R6510
-    jsr telnet_receive
+    pha
+    lda #R6510_DEFAULT
+    sta R6510
     inc .rx+1
     bne +
     inc .rx+2
@@ -164,9 +221,7 @@ net_poll:
     bne +
     dec .rx_left+1
 +   dec .rx_left
-    lda .rx_left
-    ora .rx_left+1
-    bne -
+    pla
     clc
     rts
 

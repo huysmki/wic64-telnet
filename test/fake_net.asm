@@ -1,8 +1,9 @@
 ;---------------------------------------------------------
 ; Test harness: stands in for net.asm in test builds
 ;
-; The "server" plays back test_rx (40 bytes per poll) and everything
-; the client sends is logged at TEST_TX_LOG. Keys come from test_keys:
+; The "server" plays back test_rx (40 bytes per poll, or one at a time
+; to net_read_byte) and everything the client sends is logged at
+; TEST_TX_LOG. Keys come from test_keys:
 ;
 ;   any other byte  returned as a key press
 ;   TK_IDLE, n      no key for n calls
@@ -12,6 +13,15 @@
 ;   TK_FAIL, s      the next net_poll fails with WiC64 status s
 ;   TK_END          stop: sets TEST_DONE and returns no keys
 ;
+; A scenario with a file transfer sets test_rx_transfer: net_poll
+; plays back only up to there, the rest goes to net_read_byte. At each
+; address in test_rx_holds (words, 0 at the end) the server waits until
+; the client has sent something since the server's last byte, as a
+; sender waits for an answer.
+;
+; The script and the server's data (test/scenarios.asm) are at
+; TEST_DATA, after everything the client uses in a test build.
+;
 ; TEST_DONE ($02) is 1 once the script has ended; test_finished is
 ; the routine that sets it and test_tx_pointer points just past the
 ; last logged byte (both for tools/run_test.py).
@@ -20,6 +30,7 @@
 !zone fake_net {
 NET_TIMEOUT = $ff
 TEST_TX_LOG = $9000
+TEST_DATA   = $9400
 TEST_DONE = $02
 TK_END     = $f0
 TK_IDLE    = $f1
@@ -47,6 +58,8 @@ net_open:
     sta .rx+2
     lda #0
     sta net_status
+    sta .hold_index
+    sta .sent_at_read
     clc
     rts
 
@@ -56,6 +69,7 @@ net_close:
 
 net_send:
     sty .y
+    inc .sent
 .tx:
     sta TEST_TX_LOG
 test_tx_pointer = .tx + 1
@@ -77,10 +91,10 @@ net_poll:
 .rx:
     lda $ffff
     ldy .rx+1
-    cpy #<test_rx_end
+    cpy #<test_rx_transfer
     bne +
     ldy .rx+2
-    cpy #>test_rx_end
+    cpy #>test_rx_transfer
     beq .poll_done
 +   inc .rx+1
     bne +
@@ -93,6 +107,50 @@ net_poll:
 .poll_done:
     clc
     rts
+
+net_flush:
+    clc
+    rts
+
+net_read_byte:
+    jsr .at_hold
+    bcs +
+    jsr .rx_done
+    sec
+    beq +
+    lda .rx+1
+    sta .byte+1
+    lda .rx+2
+    sta .byte+2
+    inc .rx+1
+    bne .byte
+    inc .rx+2
+.byte:
+    lda $ffff
+    ldx .sent
+    stx .sent_at_read
+    clc
++   rts
+
+; C=1 while the server waits at a hold point for the client
+.at_hold:
+    ldx .hold_index
+    lda test_rx_holds,x
+    cmp .rx+1
+    bne .no_hold
+    lda test_rx_holds+1,x
+    cmp .rx+2
+    bne .no_hold
+    lda .sent
+    cmp .sent_at_read
+    sec
+    beq +                   ; no answer yet
+    inx
+    inx
+    stx .hold_index
+.no_hold:
+    clc
++   rts
 
 net_error_text:
     lda #<.error
@@ -184,6 +242,7 @@ test_finished:
 .y:    !byte 0
 .idle: !byte 0
 .fail_status: !byte 0
+.sent:        !byte 0
+.sent_at_read: !byte 0      ; .sent when the last byte was read
+.hold_index:  !byte 0
 }
-
-!src "test/scenarios.asm"
