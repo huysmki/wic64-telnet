@@ -50,6 +50,18 @@ VIC_MEMORY = $d018
 VIC_ROM_CHARSET    = $17   ; screen $0400, ROM lower/upper case set
 VIC_CUSTOM_CHARSET = $1e   ; screen $0400, CHARSET at $3800
 
+; SID, voice 1
+SID_FREQ_LO    = $d400
+SID_FREQ_HI    = $d401
+SID_PULSE_LO   = $d402
+SID_PULSE_HI   = $d403
+SID_CONTROL    = $d404
+SID_ATTACK_DECAY = $d405
+SID_SUSTAIN_RELEASE = $d406
+SID_VOLUME     = $d418
+SID_PULSE      = $40      ; SID_CONTROL waveform
+SID_GATE       = $01
+
 SCREEN    = $0400
 COLOR_RAM = $d800
 COLOR_OFFSET_HI = >(COLOR_RAM - SCREEN)

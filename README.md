@@ -36,6 +36,9 @@ positioning, clearing). ANSI detection queries such as `ESC [ 5 n`, which
 some Commodore BBSes send at login, are ignored and left unanswered, so those
 BBSes stay in PETSCII. For a UTF-8 host, press `F7`, `M` once more.
 
+In every mode, the bell character (sent for chat requests, for example)
+flashes the border white and plays a short ping on the SID.
+
 ## 80 columns
 
 ANSI 80 and UTF-8 80 put 80 columns on the screen, with characters made 4

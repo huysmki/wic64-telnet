@@ -454,13 +454,34 @@ clock_text: !pet "00:00:00", 0
 }
 
 ;---------------------------------------------------------
-; Border flashes (bell, feedback)
+; Border flashes (bell, feedback); the bell also beeps on the SID
 ;---------------------------------------------------------
 
 !zone flash {
 FLASH_JIFFIES = 10
+BELL_FREQUENCY = 29970      ; 1760 Hz on a PAL C64 (n * 0.0587 Hz)
 
+; A square-wave ping that decays to silence by itself (sustain 0); the
+; release when the flash ends carries on at the same rate.
 ui_bell:
+    lda #<BELL_FREQUENCY
+    sta SID_FREQ_LO
+    lda #>BELL_FREQUENCY
+    sta SID_FREQ_HI
+    lda #$00                ; 50 % pulse width
+    sta SID_PULSE_LO
+    lda #$08
+    sta SID_PULSE_HI
+    lda #$09                ; attack 2 ms, decay 750 ms
+    sta SID_ATTACK_DECAY
+    lda #$09                ; sustain 0, release 750 ms
+    sta SID_SUSTAIN_RELEASE
+    lda #$0f
+    sta SID_VOLUME
+    lda #SID_PULSE          ; a bell still ringing starts again
+    sta SID_CONTROL
+    lda #SID_PULSE | SID_GATE
+    sta SID_CONTROL
     lda #COLOR_WHITE
 
 ; A = border colour to show briefly
@@ -485,6 +506,8 @@ ui_tick:
     lda #COLOR_BLACK
     sta BORDER
     sta .active
+    lda #SID_PULSE          ; releases the bell, if it rang
+    sta SID_CONTROL
 +   rts
 
 .active: !byte 0
