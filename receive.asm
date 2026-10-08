@@ -78,4 +78,7 @@ receive_byte:
     rts
 
 .end: !word 0               ; just past the last byte
+
+receive_next = .rx + 1      ; for the crash report
+receive_end = .end
 }

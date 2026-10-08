@@ -721,6 +721,7 @@ s80_copy_row:
     pha
     +kernal_on .kernal_off
     jmp ($0318)
+s80_nmi_return:             ; for the crash report
 .kernal_off:
     pla
     sta R6510

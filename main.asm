@@ -18,6 +18,7 @@
 ;   scrollback.asm rows that left the screen, and a viewer for them
 ;   book.asm      address book start screen, saved to disk
 ;   ui.asm        printing, popup boxes, line input, clock
+;   crash.asm     RUN/STOP + RESTORE: where the client was
 ;---------------------------------------------------------
 
 !ifndef TEST {
@@ -51,6 +52,7 @@ wic64_optimize_for_size = 1 ; one handshake routine instead of a copy in
 !src "charmaps.asm"
 !src "screen80.asm"
 !src "session.asm"
+!src "crash.asm"
 
 start:
     jsr move_high_part
@@ -97,6 +99,7 @@ move_high_part:
     lda .high_part_moved
     bne .moved
     inc .high_part_moved
+    jsr crash_setup         ; first, as the high part moves over it
     lda #<(high_part_load + (HIGH_PAGES - 1) * $100)
     sta zp_a
     lda #>(high_part_load + (HIGH_PAGES - 1) * $100)
@@ -139,6 +142,19 @@ HIGH_PAGES = (high_part_end - high_part_load + $ff) >> 8
 }
 !if HIGH_PART + HIGH_PAGES * $100 > PROGRAM_LIMIT {
     !error "Program overlaps the memory at PROGRAM_LIMIT"
+}
+
+; The crash report: copied to the RAM under the I/O area at start-up
+crash_report_load:
+!pseudopc CRASH_REPORT {
+!src "crash_report.asm"
+}
+crash_report_end:
+crash_setup:
+    +crash_setup
+CRASH_REPORT_PAGES = (crash_report_end - crash_report_load + $ff) >> 8
+!if CRASH_REPORT + CRASH_REPORT_PAGES * $100 > $e000 {
+    !error "The crash report does not fit under the I/O area"
 }
 
 !if TEST {

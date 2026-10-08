@@ -164,6 +164,15 @@ times. After that, or on any other error, a box shows the WiC64's message
 with `F1` Abort and `F3` Retry; Retry reconnects if the WiFi or network
 connection was lost.
 
+## If the client hangs
+
+Press `RUN/STOP` + `RESTORE`. Instead of going back to BASIC, the client then
+shows a crash report on a red border: where the processor was, its
+registers, the stack, and the last bytes the server sent. Take a photo of
+it and add it to an issue, with the version and what you were doing; then
+reset the C64. If nothing reacts at all, the processor has stopped
+completely; please mention that too. `RESTORE` on its own does nothing.
+
 ## Address book
 
 It comes with nine servers that were online when this version was made:
@@ -217,6 +226,7 @@ to the `telnet.prg` download.
 | `book.asm` | address book start screen, disk load/save, drive status |
 | `xfer.asm` | file downloads: XMODEM and Punter |
 | `ui.asm` | printing, popup boxes, line input, clock |
+| `crash.asm`, `crash_report.asm` | `RUN/STOP` + `RESTORE`: the crash report |
 | `test/` | fake network, scripted scenarios, expected results |
 | `tools/` | `run_test.py`: runs a test build in VICE for `make check` and `make bench`; `bench_data.py`: the benchmark's data |
 
@@ -234,7 +244,8 @@ one at a time, a file download's variables, the scrollback viewer's status
 line and the host typed after `O`. 80 columns use
 `$6000`–`$83FF` for their cells and font (the scrollback then starts at
 `$8400`), the bitmap's colours at `$CC00` and the bitmap itself in the RAM
-under the KERNAL ROM, at `$E000`.
+under the KERNAL ROM, at `$E000`. The crash report is copied to the RAM under
+the I/O area, at `$D000`, at start-up.
 
 ## Testing
 
