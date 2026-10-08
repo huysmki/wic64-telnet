@@ -48,6 +48,10 @@ term_start:
     sta term_columns
     lda .mode_utf8,x
     sta term_utf8
+    lda .mode_output_lo,x
+    sta .output
+    lda .mode_output_hi,x
+    sta .output+1
     jsr scrollback_clear
     lda #.NO_ESCAPE
     sta .escape_state
@@ -76,6 +80,16 @@ term_start:
 
 .mode_columns: !byte 40, 40, 40, 80, 80
 .mode_utf8:    !byte 0, 0, 1, 0, 1
+.mode_output_lo:
+    !byte <.petscii_output, <ansi_output_cp437, <ansi_output_utf8
+    !byte <ansi_output_cp437, <ansi_output_utf8
+.mode_output_hi:
+    !byte >.petscii_output, >ansi_output_cp437, >ansi_output_utf8
+    !byte >ansi_output_cp437, >ansi_output_utf8
+.output: !word .petscii_output  ; where term_output sends a byte
+!if <.output = $ff {
+    !error "jmp (.output) would read its high byte from the wrong page"
+}
 
 ; Back to the plain menu screen.
 term_stop:
@@ -206,15 +220,12 @@ term_cells_hi:  !fill 24, 0
 
 ; Displays the byte from the server in A.
 term_output:
+    ldx .cursor_visible
+    beq +
     pha
     jsr term_cursor_hide
     pla
-    ldx term_mode
-    beq .petscii_output
-    ldx term_utf8
-    bne +
-    jmp ansi_output_cp437
-+   jmp ansi_output_utf8
++   jmp (.output)
 
 ; In PETSCII mode ANSI escape sequences (ESC [ ... final) are collected
 ; rather than printed. One that draws something means the server speaks

@@ -265,8 +265,10 @@ ansi_output_utf8:
     beq .ignore
     ldx .shift_out
     ldy .g0_graphics,x      ; .g1_graphics follows .g0_graphics
-    beq .print_ascii
-    cmp #$60
+    bne +
+    jsr ascii_to_screen     ; the state is .TEXT already
+    jmp .put
++   cmp #$60
     bcc .print_ascii
     tax
     lda dec_graphics_to_screen-$60,x
@@ -317,8 +319,9 @@ ansi_output_utf8:
 .skip_string:
     ; skipped up to BEL or ESC (the start of the ST terminator ESC \)
     cmp #$07
-    beq .end_sequence
-    cmp #$1b
+    bne +
+    jmp .end_sequence
++   cmp #$1b
     bne +
     lda #.ESC
     sta .state

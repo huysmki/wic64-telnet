@@ -62,6 +62,18 @@
 ; Passes A from the server on to the terminal, looking for a
 ; Multi-Punter header and for GOOGOOGOO
 xfer_watch:
+    ldx .tabs               ; nothing under way (almost always): only
+    bne .watch              ; a TAB or a G can start something
+    ldx .goos
+    bne .watch
+    ldx .declined
+    bne .watch
+    cmp #$09
+    beq .watch
+    cmp .goo_goo_goo
+    beq .watch
+    jmp term_output
+.watch:
     sta .watched
     cmp #$09                ; TAB
     bne .not_tab
