@@ -5,6 +5,12 @@
 IAC = $ff
 ESC = $1b
 
+; A scenario with file transfers sets this and lists test_rx_transfers and
+; test_rx_holds itself; for the others they are made at the end. (A flag
+; made with !set, as !ifndef on a label that is defined further on is
+; true in ACME's first pass only, and the bytes would not be there.)
+!set TEST_TRANSFERS = 0
+
 !if SCENARIO = 1 {
 ; PETSCII BBS with Telnet negotiation, typing, line input
 test_rx:
@@ -429,6 +435,7 @@ test_keys:
 }
 
 !if SCENARIO = 20 {
+!set TEST_TRANSFERS = 1
 ; XMODEM download (CRC): two blocks, the second first with a bad CRC;
 ; the server waits for the client's answers at the hold points
 test_rx:
@@ -467,6 +474,8 @@ test_rx_hold_3:                     ; NAK
 test_rx_hold_4:                     ; ACK
     !byte $04                       ; EOT
 test_rx_end:
+test_rx_transfers:
+    !word test_rx_transfer, test_rx_end
 test_rx_holds:
     !word test_rx_hold_1, test_rx_hold_2, test_rx_hold_3, test_rx_hold_4, 0
 
@@ -481,6 +490,7 @@ test_keys:
 }
 
 !if SCENARIO = 21 {
+!set TEST_TRANSFERS = 1
 ; Punter download: the file type block (SEQ), a block without data,
 ; then 40 bytes, first with a bad checksum
 test_rx:
@@ -519,6 +529,8 @@ test_rx_hold_13:       ; S/B
 test_rx_hold_14:       ; SYN
     !text "S", "/", "B"
 test_rx_end:
+test_rx_transfers:
+    !word test_rx_transfer, test_rx_end
 test_rx_holds:
     !word test_rx_hold_1, test_rx_hold_2, test_rx_hold_3, test_rx_hold_4, test_rx_hold_5, test_rx_hold_6, test_rx_hold_7, test_rx_hold_8, test_rx_hold_9, test_rx_hold_10, test_rx_hold_11, test_rx_hold_12, test_rx_hold_13, test_rx_hold_14, 0
 
@@ -532,6 +544,7 @@ test_keys:
 }
 
 !if SCENARIO = 22 {
+!set TEST_TRANSFERS = 1
 ; Punter download started by itself: the server repeats GOO, as a BBS
 ; does that waits to send; then the same transfer as in scenario 21
 test_rx:
@@ -571,6 +584,8 @@ test_rx_hold_13:       ; S/B
 test_rx_hold_14:       ; SYN
     !text "S", "/", "B"
 test_rx_end:
+test_rx_transfers:
+    !word test_rx_transfer, test_rx_end
 test_rx_holds:
     !word test_rx_hold_1, test_rx_hold_2, test_rx_hold_3, test_rx_hold_4, test_rx_hold_5, test_rx_hold_6, test_rx_hold_7, test_rx_hold_8, test_rx_hold_9, test_rx_hold_10, test_rx_hold_11, test_rx_hold_12, test_rx_hold_13, test_rx_hold_14, 0
 
@@ -581,10 +596,95 @@ test_keys:
     !byte TK_END                    ; the result box stays
 }
 
-; Scenarios without a file transfer
-!ifndef test_rx_transfer {
-    test_rx_transfer = test_rx_end
+!if SCENARIO = 23 {
+!set TEST_TRANSFERS = 1
+; Multi-Punter as Image BBS sends it: two files, each after a header of
+; 5 TABs with its name and type, and no GOOs (the client answers the
+; header); then the end of them (CTRL-D). The user only connects
+test_rx:
+    !text 13, "ready to send", 13
+    !fill 5, 9                      ; TABs
+    !text "ONE,S", 13
+test_rx_transfer_1:
+test_rx_hold_1:        ; GOO
+    !text "A", "C", "K"
+test_rx_hold_2:        ; S/B
+    !byte $00, $02, $00, $04, $00, $ff, $ff, $02
+test_rx_hold_3:        ; GOO
+    !text "A", "C", "K"
+test_rx_hold_4:        ; S/B
+    !text "S", "Y", "N"
+test_rx_hold_5:        ; SYN
+    !text "S", "/", "B"
+test_rx_pause_1:               ; the sender waits between files
+test_rx_hold_6:        ; GOO
+    !text "A", "C", "K"
+test_rx_hold_7:        ; S/B
+    !byte $25, $00, $28, $01, $25, $00, $00
+test_rx_hold_8:        ; GOO
+    !text "A", "C", "K"
+test_rx_hold_9:        ; S/B
+    !byte $a2, $0a, $16, $6b, $07, $ff, $ff, $01, $06, $0b, $10, $15, $1a, $1f, $24, $29
+    !byte $2e, $33, $38, $3d, $42, $47, $4c, $51, $56, $5b, $60, $65, $6a, $6f, $74, $79
+    !byte $7e, $83, $88, $8d, $92
+test_rx_hold_10:       ; GOO
+    !text "A", "C", "K"
+test_rx_hold_11:       ; S/B
+    !text "S", "Y", "N"
+test_rx_hold_12:       ; SYN
+    !text "S", "/", "B"
+test_rx_pause_2:               ; the sender waits between files
+    !fill 5, 9                      ; TABs
+    !text "TWO,P", 13
+test_rx_transfer_2:
+test_rx_hold_13:       ; GOO
+    !text "A", "C", "K"
+test_rx_hold_14:       ; S/B
+    !byte $ff, $01, $06, $04, $00, $ff, $ff, $01
+test_rx_hold_15:       ; GOO
+    !text "A", "C", "K"
+test_rx_hold_16:       ; S/B
+    !text "S", "Y", "N"
+test_rx_hold_17:       ; SYN
+    !text "S", "/", "B"
+test_rx_pause_3:               ; the sender waits between files
+test_rx_hold_18:       ; GOO
+    !text "A", "C", "K"
+test_rx_hold_19:       ; S/B
+    !byte $3b, $00, $d8, $01, $3b, $00, $00
+test_rx_hold_20:       ; GOO
+    !text "A", "C", "K"
+test_rx_hold_21:       ; S/B
+    !byte $a1, $18, $88, $b3, $07, $ff, $ff, $01, $08, $07, $14, $21, $2e, $3b, $48, $55
+    !byte $62, $6f, $7c, $89, $96, $a3, $b0, $bd, $ca, $d7, $e4, $f1, $fe, $0b, $18, $25
+    !byte $32, $3f, $4c, $59, $66, $73, $80, $8d, $9a, $a7, $b4, $c1, $ce, $db, $e8, $f5
+    !byte $02, $0f, $1c, $29, $36, $43, $50, $5d, $6a, $77, $84
+test_rx_hold_22:       ; GOO
+    !text "A", "C", "K"
+test_rx_hold_23:       ; S/B
+    !text "S", "Y", "N"
+test_rx_hold_24:       ; SYN
+    !text "S", "/", "B"
+test_rx_pause_4:               ; the sender waits between files
+    !fill 5, 9
+    !fill 16, 4                     ; CTRL-D: no more files
+    !text 13, "all sent", 13
+test_rx_end:
+test_rx_transfers:
+    !word test_rx_transfer_1, test_rx_transfer_2, test_rx_end
+test_rx_holds:
+    !word test_rx_hold_1, test_rx_hold_2, test_rx_hold_3, test_rx_hold_4, test_rx_hold_5, test_rx_pause_1, test_rx_hold_6, test_rx_hold_7, test_rx_hold_8, test_rx_hold_9, test_rx_hold_10, test_rx_hold_11, test_rx_hold_12, test_rx_pause_2, test_rx_hold_13, test_rx_hold_14, test_rx_hold_15, test_rx_hold_16, test_rx_hold_17, test_rx_pause_3, test_rx_hold_18, test_rx_hold_19, test_rx_hold_20, test_rx_hold_21, test_rx_hold_22, test_rx_hold_23, test_rx_hold_24, test_rx_pause_4, 0
+
+!align 255, 0
+test_keys:
+    !byte KEY_RETURN                ; server 1, PETSCII
+    !byte TK_WAIT_RX
+    !byte TK_IDLE, 5
+    !byte TK_END
 }
-!ifndef test_rx_holds {
-test_rx_holds: !word 0
+
+; Scenarios without a file transfer
+!if TEST_TRANSFERS = 0 {
+test_rx_transfers: !word test_rx_end
+test_rx_holds:     !word 0
 }

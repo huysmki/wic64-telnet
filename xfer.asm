@@ -18,11 +18,20 @@
 ; the variant of CCGMS, as in CGTerm's punter.c by Per Olofsson with
 ; Michael Steil's changes for CCGMS.
 ;
-; A BBS that has started a Punter upload repeats GOO until the terminal
-; answers. All that the server sends passes xfer_watch on its way to the
-; terminal, and three GOOs in a row offer to receive the file
-; (xfer_offer, called by the session). Declined, the offer is not made
-; again until the server has sent something else.
+; All that the server sends passes xfer_watch on its way to the
+; terminal, which starts receiving a file (xfer_offer, called by the
+; session) when a BBS is waiting to send one:
+;
+; - Punter: the BBS repeats GOO until the terminal answers; three in a
+;   row start it.
+; - Multi-Punter: several files, each announced by a header of TABs
+;   (CCGMS sends 16, Image BBS 5), the name and type (NAME,P) and RETURN,
+;   repeated until the terminal starts receiving; a header that starts
+;   with CTRL-D ends them. The file is saved under that name without
+;   asking, and the box closes at once, ready for the next header.
+;
+; After a download that stopped or failed, neither starts one again until
+; the server has sent something else, as the BBS keeps asking.
 ;
 ; The transfer takes the server's bytes itself (net_read_byte), passed
 ; through the Telnet layer only if the server speaks Telnet, and puts
@@ -50,14 +59,68 @@
 .XMODEM = 0
 .PUNTER = 1
 
-; Passes A from the server on to the terminal, looking for GOOGOOGOO
+; Passes A from the server on to the terminal, looking for a
+; Multi-Punter header and for GOOGOOGOO
 xfer_watch:
+    sta .watched
+    cmp #$09                ; TAB
+    bne .not_tab
+    lda .tabs
+    bmi +
+    inc .tabs
++   lda #0
+    sta .header_length
+    jmp .pass
+.not_tab:
+    ldx .tabs
+    cpx #2
+    bcc .no_header
+    cmp #0                  ; NULs in between are skipped
+    beq .pass
+    cmp #$0d
+    beq .header_end
+    ldx .header_length
+    cpx #.NAME_MAX + 2
+    bcs .no_header          ; too long for a name
+    sta .mp_header,x
+    inc .header_length
+    bcc .pass               ; always
+.header_end:
+    ldx .header_length      ; at least a letter, the comma and the type
+    cpx #3
+    bcc .no_header
+    lda .mp_header-2,x
+    cmp #","
+    bne .no_header
+    lda .mp_header-1,x
+    ldy #2
+-   cmp .type_letters,y     ; P, S or U
+    beq +
+    dey
+    bpl -
+    bmi .no_header          ; always
++   lda .mp_header
+    cmp #$04                ; CTRL-D: no more files
+    beq .no_header
+    dex
+    dex
+    stx .header_name_length
+    lda #0
+    sta .tabs
+    lda .declined
+    bne .pass
+    inc xfer_offered
+    bne .pass               ; always
+.no_header:
+    lda #0
+    sta .tabs
+    lda .watched
     ldx .goos
     cmp .goo_goo_goo,x
     beq +
     ldx #0
-    stx .declined           ; something else: the next GOOs may offer
-    cmp .goo_goo_goo        ; again; a G may start them
+    stx .declined           ; something else: may start again
+    cmp .goo_goo_goo        ; a G may start GOOs
     bne ++
 +   inx
     cpx #9
@@ -67,14 +130,24 @@ xfer_watch:
     bne ++
     inc xfer_offered
 ++  stx .goos
+.pass:
+    lda .watched
     jmp term_output
 
 ; Receives the file a BBS is waiting to send with Punter
 xfer_offer:
     lda #0
     sta xfer_offered
-    inc .declined           ; once, while the GOOs keep coming
-    jsr .open_box
+    ldx .header_name_length ; named by a Multi-Punter header?
+    stx .named
+    sta .header_name_length
+    sta .name,x
+-   dex
+    bmi +
+    lda .mp_header,x
+    sta .name,x
+    jmp -
++   jsr .open_box
     lda #.PUNTER
     sta .protocol
     jmp .start
@@ -86,6 +159,8 @@ xfer_offer:
 
 ; Asks what to download and receives it.
 xfer_download:
+    lda #0
+    sta .named
     jsr .open_box
     +plot 1, .TITLE_ROW
     +print .protocol_text
@@ -172,14 +247,20 @@ xfer_download:
     sta .message+1
 +   lda .message+1          ; received: now it gets its name
     cmp #>.done_text
-    bne +
+    bne .unsuccessful
     lda .message
     cmp #<.done_text
-    bne +
+    bne .unsuccessful
     jsr .rename
     sta .message
     sty .message+1
-+   lda .message
+    lda .named              ; one of several files: on to the next
+    beq .show_message
+    jmp box_close
+.unsuccessful:
+    inc .declined           ; the BBS keeps asking: wait for it to stop
+.show_message:
+    lda .message
     ldy .message+1
     jsr .status
     jsr wait_key
@@ -190,6 +271,8 @@ xfer_download:
 ; below the name stays empty: the screen editor would read it as more
 ; of the name. Returns A/Y = the message to show.
 .rename:
+    lda .named
+    bne .rename_now         ; named by the sender
     lda #<.name_text
     ldy #>.name_text
 .ask_name:
@@ -207,6 +290,7 @@ xfer_download:
     cmp #0
     beq -                   ; a name it must have: the next download
     jsr .take_name          ; deletes .temp_name
+.rename_now:
     ldx #0
     lda #<.rename_command
     ldy #>.rename_command
@@ -1036,6 +1120,11 @@ xfer_download:
 xfer_offered:    !byte 0    ; 1: the session calls xfer_offer
 .goos:           !byte 0    ; how much of GOOGOOGOO came so far
 .declined:       !byte 0
+.watched:        !byte 0
+.tabs:           !byte 0    ; TABs in a row, up to 128
+.mp_header:      !fill .NAME_MAX + 2, 0 ; NAME,T of a Multi-Punter header
+.header_length:  !byte 0
+.header_name_length: !byte 0 ; of the name for the next file, or 0
 
 .codes:                     ; Punter codes, by their offset here; none
     !byte 0                 ; at 0 (0: no code)
@@ -1108,6 +1197,7 @@ xfer_offered:    !byte 0    ; 1: the session calls xfer_offer
 .send_code_low = .v : !set .v = .v + 1
 .wait_code_low = .v : !set .v = .v + 1
 .end_flag = .v : !set .v = .v + 1
+.named = .v : !set .v = .v + 1
 .window = .v : !set .v = .v + 3
 .accept_left = .v : !set .v = .v + 1
 !if .v > XFER_VARIABLES_END {

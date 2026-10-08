@@ -66,16 +66,18 @@ net_open:
 .host:
     lda $ffff,y
     beq +
-    sta .open_payload,y
+    sta .payload,y
     iny
     bne .host
-+   sty .open_size
++   sty .request_size
     lda #0
     sta .tx_length
     sta .idle_wait
     sta .rx_left
     sta .rx_left+1
-    +wic64_execute .open_request, net_response, NET_OPEN_TIMEOUT
+    lda #WIC64_TCP_OPEN
+    sta .request_command
+    +wic64_execute .request, net_response, NET_OPEN_TIMEOUT
     jmp .result
 
 net_close:
@@ -89,7 +91,7 @@ net_send:
     ldy .tx_length
     cpy #NET_TX_SIZE
     bcs +
-    sta .tx_payload,y
+    sta .payload,y
     inc .tx_length
 +   ldy .y
     rts
@@ -166,8 +168,10 @@ net_flush:
     bne +
     clc
     rts
-+   sta .tx_size
-    +wic64_execute .write_request, net_response, NET_REQUEST_TIMEOUT
++   sta .request_size
+    lda #WIC64_TCP_WRITE
+    sta .request_command
+    +wic64_execute .request, net_response, NET_REQUEST_TIMEOUT
     jsr .result
     bcs +
     lda #0
@@ -270,13 +274,12 @@ net_error_text:
 .read_request:         !byte "R", WIC64_TCP_READ, $00, $00
 .close_request:        !byte "R", WIC64_TCP_CLOSE, $00, $00
 
-.open_request: !byte "R", WIC64_TCP_OPEN
-.open_size:    !byte $00, $00
-.open_payload: !fill 256, 0
-
-.write_request: !byte "R", WIC64_TCP_WRITE
-.tx_size:       !byte $00, $00
-.tx_payload:    !fill NET_TX_SIZE, 0
-.tx_length:     !byte 0
+; Opening a connection (the host) and writing (the queued bytes) share
+; one request: the queue is empty while a connection opens.
+.request:         !byte "R"
+.request_command: !byte 0
+.request_size:    !byte $00, $00
+.payload:         !fill 256, 0
+.tx_length:       !byte 0
 }
 

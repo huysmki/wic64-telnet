@@ -449,16 +449,16 @@ scrollback_view:
     sta .record+1
     rts
 
-; Reads the record at the read position into .row_chars and
-; .row_colors, padded with blanks, and points zp_a/zp_b at them.
+; Reads the record at the read position into scrollback_row_chars and
+; scrollback_row_colors, padded with blanks, and points zp_a/zp_b at them.
 .read_record:
-    lda #<.row_chars
+    lda #<scrollback_row_chars
     sta zp_a
-    lda #>.row_chars
+    lda #>scrollback_row_chars
     sta zp_a+1
-    lda #<.row_colors
+    lda #<scrollback_row_colors
     sta zp_b
-    lda #>.row_colors
+    lda #>scrollback_row_colors
     sta zp_b+1
     jsr .read_byte
     sta .length
@@ -546,12 +546,12 @@ scrollback_view:
 .draw_status:
     ldx #39
     lda #" "
--   sta .status,x
+-   sta scrollback_status,x
     dex
     bpl -
     ldx #.TITLE_LENGTH-1
 -   lda .title,x
-    sta .status,x
+    sta scrollback_status,x
     dex
     bpl -
     lda .top
@@ -564,7 +564,7 @@ scrollback_view:
     ldx #.TITLE_LENGTH
     jsr .append_number
     lda #"/"
-    sta .status,x
+    sta scrollback_status,x
     inx
     lda .total
     sta .number
@@ -573,12 +573,12 @@ scrollback_view:
     jsr .append_number
     ldx #.KEYS_LENGTH-1
 -   lda .keys,x
-    sta .status + 40 - .KEYS_LENGTH,x
+    sta scrollback_status + 40 - .KEYS_LENGTH,x
     dex
     bpl -
 
     ldx #39
--   lda .status,x
+-   lda scrollback_status,x
     ora #$80
     sta SCREEN + .STATUS_ROW * 40,x
     lda #.STATUS_COLOR
@@ -587,7 +587,7 @@ scrollback_view:
     bpl -
     rts
 
-; Writes .number in decimal to .status from X on; X ends after it.
+; Writes .number in decimal to scrollback_status from X on; X ends after it.
 .append_number:
     ldy #4
     lda #0
@@ -617,7 +617,7 @@ scrollback_view:
     sta .started
     lda .digit
     ora #"0"
-    sta .status,x
+    sta scrollback_status,x
     inx
 ++  dey
     bpl .power
@@ -654,7 +654,4 @@ scrollback_view:
 .last_row: !byte 0
 .digit:    !byte 0
 .started:  !byte 0
-.status:   !fill 40, 0
-.row_chars:  !fill 80, 0
-.row_colors: !fill 80, 0
 }

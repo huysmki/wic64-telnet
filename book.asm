@@ -21,6 +21,9 @@ BOOK_ENTRY_MODE = BOOK_ENTRY_SIZE - 1
 !zone book {
 .MAX_ENTRIES = 16
 .HOST_MAX = 38
+!if .HOST_MAX + 1 > 39 {
+    !error "book_open_host has room for 39 bytes"
+}
 .ENTRY_SIZE = BOOK_ENTRY_SIZE
 .ENTRY_MODE = BOOK_ENTRY_MODE
 .FIRST_ROW = 2
@@ -168,8 +171,8 @@ book_menu:
     jsr .ask_host
     bcs .key_again
     jsr .take_host
-    lda #<.open_host
-    ldy #>.open_host
+    lda #<book_open_host
+    ldy #>book_open_host
     ldx #TERM_PETSCII
     clc
     rts
@@ -386,19 +389,19 @@ book_menu:
     bcc -
     rts
 
-; Copies the input line to .open_host like .store_host does.
+; Copies the input line to book_open_host like .store_host does.
 .take_host:
     jsr .skip_spaces
     ldy #0
 -   lda INPUT_BUFFER,x
-    sta .open_host,y
+    sta book_open_host,y
     beq +
     inx
     iny
     cpy #.HOST_MAX
     bcc -
     lda #0
-    sta .open_host,y
+    sta book_open_host,y
 +   rts
 
 ; Returns X = index of the first non-blank character of the input.
@@ -684,7 +687,6 @@ disk_device: !byte 8         ; the drive the program was loaded from
 .rename:   !pet "r0:telnet.cfg=telnet.tmp"
 .rename_length = * - .rename
 
-.open_host:    !fill .HOST_MAX + 1, 0
 
 .title:
     !pet PET_RVS_ON, PET_LIGHT_GREEN

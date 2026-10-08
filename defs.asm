@@ -114,8 +114,12 @@ zp_a = $fb
 zp_b = $fd
 
 ; Memory map
-;   $0334-$03fb  XFER_VARIABLES: the cassette buffer, free but for the
-;                WiC64 library starting another program (the portal)
+;   $02a7-$02f6  the scrollback viewer: a row's colours
+;   $0334-$03fb  TRANSIENT: the cassette buffer, free but for the WiC64
+;                library starting another program (the portal). Used by
+;                one thing at a time: a file transfer's variables, the
+;                scrollback viewer's status line, the address book's
+;                host for O until the session has copied it
 ;   $0801-$37ff  program, first part
 ;   $3800-$3fff  CHARSET: ASCII character set for the ANSI modes
 ;   $4000-$57ff  program, second part
@@ -135,8 +139,13 @@ zp_b = $fd
 ;   $e000-$ff3f  80 columns: the bitmap, in the RAM under the KERNAL ROM
 ;   $fffa-$ffff  80 columns: interrupt vectors for while the KERNAL ROM
 ;                is switched off
-XFER_VARIABLES   = $0334
-XFER_VARIABLES_END = $03fc
+TRANSIENT        = $0334
+TRANSIENT_END    = $03fc
+XFER_VARIABLES   = TRANSIENT
+XFER_VARIABLES_END = TRANSIENT_END
+scrollback_status = TRANSIENT     ; 40 bytes
+book_open_host   = TRANSIENT      ; 39 bytes
+scrollback_row_colors = $02a7     ; 80 bytes
 CHARSET          = $3800
 PROGRAM_LIMIT    = $5800
 scrollback_screen = $5800         ; 25 rows of screen codes
@@ -167,7 +176,8 @@ alt_screen_buffer = BSS + $0400   ; 24 rows * (40 screen + 40 color)
 book_load_buffer = alt_screen_buffer ; 1 KB, only used at start-up
 disk_status      = alt_screen_buffer + 24 * 80 ; 40 bytes: the drive's
                                   ; last status message, 0-terminated
-BSS_END          = disk_status + 40
+scrollback_row_chars = disk_status + 40 ; 80 bytes
+BSS_END          = scrollback_row_chars + 80
 MATRIX80         = $cc00
 BITMAP80         = $e000
 !if BSS_END > MATRIX80 {

@@ -90,8 +90,15 @@ Many BBSes have file areas. Start the download on the BBS first, then press
 A Commodore BBS that is ready to send with Punter repeats `GOO` until the
 terminal answers. After three `GOO`s in a row the client starts the download
 by itself, at once, as some BBSes give up when the answer takes too long.
-Once it has stopped, the next `GOO`s don't start it again until the BBS has
-sent something else.
+After a download that stopped or failed, it doesn't start again by itself
+until the BBS has sent something else.
+
+**Multi-Punter**, which some BBSes offer, sends several files in one go,
+each announced by a header with its name and type, which the BBS repeats
+until the terminal answers. The client starts each download as soon as the
+header comes, saves the file under that name without asking (unless the
+drive refuses it), closes the box at once and is ready for the next one,
+until the BBS says there are no more.
 
 The file is saved as `download.tmp` on the drive the program was loaded from
 (device 8 if unknown), while a box shows how many bytes have come in; neither
@@ -216,11 +223,14 @@ Memory: the program runs in two parts around the ANSI character set at
 `$3800`: `$0801`–`$37FF` and `$4000`–`$57FF` (both checked at build time).
 The second part is stored right after the first in `telnet.prg` and moved up
 at start-up. While the scrollback is shown the screen is kept at
-`$5800`–`$5FFF`, which a file download uses for its blocks, and its
-variables are in the cassette buffer at `$0334`; the scrollback itself is at `$6000`–`$9FFF`. What one read
-from the WiC64 brings (at most 8 KB) is received at `$A000`–`$BFFF`, in the
-RAM under the BASIC ROM, before it is handled. Buffers (popup boxes, address
-book loading, the alternate screen) are at `$C000`–`$CBFF`. 80 columns use
+`$5800`–`$5FFF`, which a file download uses for its blocks; the scrollback
+itself is at `$6000`–`$9FFF`. What one read from the WiC64 brings (at most
+8 KB) is received at `$A000`–`$BFFF`, in the RAM under the BASIC ROM, before
+it is handled. Buffers (popup boxes, address book loading, the alternate
+screen, the drive's status, a scrollback row) are at `$C000`–`$CBFF`, a
+scrollback row's colours at `$02A7`. The cassette buffer at `$0334` holds,
+one at a time, a file download's variables, the scrollback viewer's status
+line and the host typed after `O`. 80 columns use
 `$6000`–`$83FF` for their cells and font (the scrollback then starts at
 `$8400`), the bitmap's colours at `$CC00` and the bitmap itself in the RAM
 under the KERNAL ROM, at `$E000`.

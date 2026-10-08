@@ -13,8 +13,9 @@
 ;   TK_FAIL, s      the next net_poll fails with WiC64 status s
 ;   TK_END          stop: sets TEST_DONE and returns no keys
 ;
-; A scenario with a file transfer sets test_rx_transfer: net_poll
-; plays back only up to there, the rest goes to net_read_byte. At each
+; test_rx_transfers lists where each file transfer starts, and ends with
+; test_rx_end: net_poll plays back only up to the next of these, and from
+; a transfer's start the bytes go to net_read_byte. At each
 ; address in test_rx_holds (words, 0 at the end) the server waits until
 ; the client has sent something since the server's last byte, as a
 ; sender waits for an answer.
@@ -58,6 +59,7 @@ net_open:
     sta .rx+2
     lda #0
     sta net_status
+    sta .transfer_index
     sta .hold_index
     sta .sent_at_read
     clc
@@ -90,13 +92,18 @@ net_poll:
 +   ldx #.RX_CHUNK
 .rx:
     lda $ffff
-    ldy .rx+1
-    cpy #<test_rx_transfer
+    pha
+    ldy .transfer_index     ; a transfer's start, or the end
+    lda test_rx_transfers,y
+    cmp .rx+1
     bne +
-    ldy .rx+2
-    cpy #>test_rx_transfer
-    beq .poll_done
-+   inc .rx+1
+    lda test_rx_transfers+1,y
+    cmp .rx+2
+    bne +
+    pla
+    jmp .poll_done
++   pla
+    inc .rx+1
     bne +
     inc .rx+2
 +   stx .x
@@ -113,7 +120,20 @@ net_flush:
     rts
 
 net_read_byte:
-    jsr .at_hold
+    jsr .rx_done
+    sec
+    beq .no_byte
+    ldx .transfer_index     ; past a transfer's start: what comes after
+    lda test_rx_transfers,x ; the transfer goes to the terminal again
+    cmp .rx+1
+    bne +
+    lda test_rx_transfers+1,x
+    cmp .rx+2
+    bne +
+    inx
+    inx
+    stx .transfer_index
++   jsr .at_hold
     bcs +
     jsr .rx_done
     sec
@@ -130,24 +150,32 @@ net_read_byte:
     ldx .sent
     stx .sent_at_read
     clc
-+   rts
++
+.no_byte:
+    rts
 
-; C=1 while the server waits at a hold point for the client
+; C=1 while the server waits at a hold point for the client. Hold
+; points already passed (a pause between two transfers, say) are skipped.
 .at_hold:
     ldx .hold_index
+    lda test_rx_holds+1,x
+    beq .no_hold            ; the end of the list
+    cmp .rx+2
+    bcc .passed
+    bne .no_hold            ; still to come
     lda test_rx_holds,x
     cmp .rx+1
-    bne .no_hold
-    lda test_rx_holds+1,x
-    cmp .rx+2
+    bcc .passed
     bne .no_hold
     lda .sent
     cmp .sent_at_read
     sec
     beq +                   ; no answer yet
+.passed:
     inx
     inx
     stx .hold_index
+    jmp .at_hold
 .no_hold:
     clc
 +   rts
@@ -245,4 +273,5 @@ test_finished:
 .sent:        !byte 0
 .sent_at_read: !byte 0      ; .sent when the last byte was read
 .hold_index:  !byte 0
+.transfer_index: !byte 0
 }
