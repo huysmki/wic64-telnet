@@ -206,6 +206,7 @@ to the `telnet.prg` download.
 | `main.asm` | entry point, includes |
 | `wic64.asm`, `wic64.h` | WiC64 library by Henning Liebenau |
 | `net.asm` | TCP connection through the WiC64 |
+| `receive.asm` | hands what a read brought on to the Telnet layer, a byte at a time |
 | `telnet.asm` | Telnet protocol and option negotiation |
 | `term.asm` | terminal modes, keyboard, cursor |
 | `ansi.asm` | ANSI/VT100 screen driver |
@@ -217,7 +218,7 @@ to the `telnet.prg` download.
 | `xfer.asm` | file downloads: XMODEM and Punter |
 | `ui.asm` | printing, popup boxes, line input, clock |
 | `test/` | fake network, scripted scenarios, expected results |
-| `tools/` | `run_test.py`: runs a test build in VICE for `make check` |
+| `tools/` | `run_test.py`: runs a test build in VICE for `make check` and `make bench`; `bench_data.py`: the benchmark's data |
 
 Memory: the program runs in two parts around the ANSI character set at
 `$3800`: `$0801`–`$37FF` and `$4000`–`$57FF` (both checked at build time).
@@ -252,6 +253,14 @@ VICE in `/Applications`, or set `VICE=` and `C1541=`) and compares the
 screen and what was sent with `test/expected/`. Each run also leaves a
 screenshot in `build/`. After an intended change, look at the new results
 and accept them with `make expected`.
+
+`make bench` measures how fast the client shows what a server sends: how
+many cycles it takes for each byte, from the read until the screen is up to
+date (the WiC64 transfer itself not included). It plays back an animation
+drawn from the top of the screen, like Telehack's `starwars`, in ANSI 80 and
+UTF-8 80, and BBS text that scrolls, in ANSI 80 and ANSI 40
+(`test/bench.asm`). The data goes through the same `receive.asm` loop as a
+real connection.
 
 The test builds never touch `net.asm` or the WiC64, so after changing those,
 try a real connection too: `x64sc -userportdevice 23 -autostart

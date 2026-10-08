@@ -26,6 +26,8 @@
 ; TEST_DONE ($02) is 1 once the script has ended; test_finished is
 ; the routine that sets it and test_tx_pointer points just past the
 ; last logged byte (both for tools/run_test.py).
+;
+; The benchmark (test/bench.asm) plays back its own data instead.
 ;---------------------------------------------------------
 
 !zone fake_net {
@@ -82,6 +84,9 @@ test_tx_pointer = .tx + 1
     rts
 
 net_poll:
+!ifdef BENCH {
+    jmp bench_poll
+}
     lda .fail_status
     beq +
     sta net_status
@@ -187,6 +192,9 @@ net_error_text:
 .error: !pet "Test error", 0
 
 .rx_done:
+!ifdef BENCH {
+    jmp bench_done
+}
     lda .rx+1
     cmp #<test_rx_end
     bne +
@@ -204,6 +212,9 @@ test_get_key:
     jsr .fetch
     cmp #TK_END
     bne +
+!ifdef BENCH {
+    jsr bench_stop
+}
     jsr test_finished
     dec .key+1              ; stay on TK_END
     lda #0

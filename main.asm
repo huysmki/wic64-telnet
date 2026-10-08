@@ -4,9 +4,11 @@
 ; Build:       acme -f cbm -o telnet.prg main.asm
 ; Test build:  acme -f cbm -DTEST=1 -DSCENARIO=<n> -o test.prg main.asm
 ;              (fake network and scripted keys, see test/)
+; Benchmark:   make bench (see test/bench.asm)
 ;
 ; Modules:
 ;   net.asm       TCP connection through the WiC64
+;   receive.asm   hands what a read brought on, a byte at a time
 ;   telnet.asm    Telnet protocol and option negotiation
 ;   term.asm      terminal modes, keyboard, cursor
 ;   ansi.asm      ANSI/VT100 screen driver
@@ -42,6 +44,7 @@ wic64_optimize_for_size = 1 ; one handshake routine instead of a copy in
 } else {
     !src "net.asm"
 }
+!src "receive.asm"
 !src "telnet.asm"
 !src "term.asm"
 !src "ansi.asm"
@@ -140,8 +143,12 @@ HIGH_PAGES = (high_part_end - high_part_load + $ff) >> 8
 
 !if TEST {
 * = TEST_DATA
-!src "test/scenarios.asm"
+  !ifdef BENCH {
+    !src "test/bench.asm"
+  } else {
+    !src "test/scenarios.asm"
     !if * > NET_RX_BUFFER {
         !error "The test data runs into NET_RX_BUFFER"
     }
+  }
 }

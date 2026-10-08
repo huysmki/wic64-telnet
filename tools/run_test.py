@@ -10,6 +10,9 @@ the client sent to the fake server. In 80 columns the screen is the
 80-column cells followed by the text screen (whose bottom rows show
 below them), and a checksum of the bitmap the cells are drawn on. `make check` compares these reports
 with test/expected/.
+
+For a benchmark build (test/bench.asm) it also prints how many cycles
+the client took for each byte.
 """
 
 import hashlib
@@ -22,6 +25,7 @@ import sys
 import time
 
 TIMEOUT = 60
+PAL_CLOCK = 985248     # cycles a second
 
 CMD_MEMORY_GET = 0x01
 CMD_BANKS_AVAILABLE = 0x82
@@ -232,6 +236,12 @@ def main():
             matrix = labels["MATRIX80"]
             bitmap_digest = hashlib.sha1(monitor.memory(bitmap, bitmap + 7999, ram)
                                          + monitor.memory(matrix, matrix + 999, ram)).hexdigest()
+        if "bench_cycles" in labels:
+            timers = monitor.memory(labels["bench_cycles"], labels["bench_cycles"] + 3)
+            cycles = (timers[0] | timers[1] << 8) + (timers[2] | timers[3] << 8) * 65536
+            data = labels["bench_bytes"]
+            print(f"{os.path.basename(prg)}: {data} bytes in {cycles} cycles: "
+                  f"{cycles / data:.0f} cycles a byte, {data * PAL_CLOCK / cycles:.0f} bytes a second")
         pointer = monitor.memory(labels["test_tx_pointer"], labels["test_tx_pointer"] + 1)
         tx_end = pointer[0] | pointer[1] << 8
         sent = monitor.memory(0x9000, tx_end - 1) if tx_end > 0x9000 else b""

@@ -73,8 +73,8 @@ net_open:
     lda #0
     sta .tx_length
     sta .idle_wait
-    sta .rx_left
-    sta .rx_left+1
+    tay
+    jsr receive_start       ; nothing left of a previous connection
     lda #WIC64_TCP_OPEN
     sta .request_command
     +wic64_execute .request, net_response, NET_OPEN_TIMEOUT
@@ -100,10 +100,9 @@ net_send:
 ; telnet_receive; or, while the connection is idle, does nothing until
 ; it is time to read again.
 net_poll:
-    lda .rx_left            ; left over from a file transfer
-    ora .rx_left+1
+    jsr receive_pending     ; left over from a file transfer
     beq +
-    jmp .deliver_rest
+    jmp receive_deliver
 +   lda .tx_length
     bne .write
     lda JIFFY_LO
@@ -131,11 +130,12 @@ net_poll:
     jsr .result
     bcs .poll_done
     lda wic64_response_size
-    ora wic64_response_size+1
+    ldy wic64_response_size+1
+    jsr receive_start
     beq .nothing_read
     lda #0                  ; data: read again straight away
     sta .idle_wait
-    jmp .deliver
+    jmp receive_deliver
 .nothing_read:
     lda .idle_wait          ; wait 1, 2, 4, ... jiffies
     asl
@@ -147,19 +147,6 @@ net_poll:
 +   sta .idle_wait
     clc
 .poll_done:
-    rts
-
-; Hands the wic64_response_size bytes in NET_RX_BUFFER to
-; telnet_receive. Returns C=0.
-.deliver:
-    jsr .rewind
-.deliver_rest:
--   jsr .take_byte
-    jsr telnet_receive
-    lda .rx_left
-    ora .rx_left+1
-    bne -
-    clc
     rts
 
 ; Sends the bytes queued with net_send now. Returns C=1 on failure.
@@ -182,52 +169,19 @@ net_flush:
 ; commands included), reading from the WiC64 when the buffer is empty;
 ; C=1 if nothing has come in, or the WiC64 did not answer.
 net_read_byte:
-    lda .rx_left
-    ora .rx_left+1
-    bne .take_byte
-    +wic64_execute .read_request, NET_RX_BUFFER, NET_POLL_TIMEOUT
+    jsr receive_pending
+    beq +
+    jmp receive_byte
++   +wic64_execute .read_request, NET_RX_BUFFER, NET_POLL_TIMEOUT
     jsr .result
     bcs +
     lda wic64_response_size
-    ora wic64_response_size+1
+    ldy wic64_response_size+1
+    jsr receive_start
     sec
     beq +
-    jsr .rewind
-    jmp .take_byte
+    jmp receive_byte
 +   rts
-
-; Points at the start of what the last read brought.
-.rewind:
-    lda #<NET_RX_BUFFER
-    sta .rx+1
-    lda #>NET_RX_BUFFER
-    sta .rx+2
-    lda wic64_response_size
-    sta .rx_left
-    lda wic64_response_size+1
-    sta .rx_left+1
-    rts
-
-; Returns the next byte from NET_RX_BUFFER in A, C=0. Preserves X
-; and Y.
-.take_byte:
-    lda #R6510_NO_BASIC     ; the buffer is under the BASIC ROM
-    sta R6510
-.rx:
-    lda $ffff
-    pha
-    lda #R6510_DEFAULT
-    sta R6510
-    inc .rx+1
-    bne +
-    inc .rx+2
-+   lda .rx_left
-    bne +
-    dec .rx_left+1
-+   dec .rx_left
-    pla
-    clc
-    rts
 
 ; Turns the outcome of a WiC64 request (C = timeout, A = status) into
 ; C=1 on any failure, recording net_status.
@@ -266,7 +220,6 @@ net_error_text:
 .timeout_message: !pet "WiC64 did not answer in time", 0
 
 .y: !byte 0
-.rx_left:    !word 0         ; bytes still to hand on
 .last_read: !byte 0         ; JIFFY_LO at the last read
 .idle_wait: !byte 0         ; jiffies to wait after it
 
