@@ -9,7 +9,8 @@ mostly spaces, of which only some 60 cells change from one frame to the
 next. The last frame leads back to the first, so the data can repeat.
 
 bench_text.bin: about 4 KB of BBS text that scrolls: words in changing
-colours, and rows of CP437 shading and blocks on coloured backgrounds.
+colours, and rows of CP437 shading and blocks on coloured backgrounds,
+with a status line on top now and then.
 
 Both are the same on every run (a fixed seed).
 """
@@ -48,6 +49,7 @@ def text(rnd):
              "welcome", "users", "online", "door", "upload", "download", "ansi"]
     blocks = [0xb0, 0xb1, 0xb2, 0xdb, 0xdc, 0xdf]
     out = bytearray()
+    status_lines = 0
     while len(out) < 4000:
         line, length = bytearray(), 0
         if rnd.random() < 0.5:
@@ -66,6 +68,10 @@ def text(rnd):
                 line += bytes([rnd.choice(blocks)]) * run
                 length += run
         out += line + f"{ESC}[0m\r\n".encode()
+        if len(out) // 1000 != status_lines:        # now and then a status line
+            status_lines += 1                       # on top, as some BBSes do
+            status = f" {status_lines} new messages ".ljust(80)
+            out += f"{ESC}7{ESC}[H{ESC}[1;37;44m{status}{ESC}[0m{ESC}8".encode()
     return bytes(out)
 
 

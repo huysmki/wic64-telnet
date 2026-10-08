@@ -14,26 +14,45 @@
 ; A/Y = the number of bytes at NET_RX_BUFFER to hand on. Returns Z=1
 ; if there are none.
 receive_start:
-    sta .left
-    sty .left+1
+    clc
+    adc #<NET_RX_BUFFER
+    sta .end
+    tya
+    adc #>NET_RX_BUFFER
+    sta .end+1
     lda #<NET_RX_BUFFER
     sta .rx+1
     lda #>NET_RX_BUFFER
     sta .rx+2
 ; Returns Z=1 once every byte has been handed on.
 receive_pending:
-    lda .left
-    ora .left+1
-    rts
+    lda .rx+1
+    cmp .end
+    bne +
+    lda .rx+2
+    cmp .end+1
++   rts
 
 ; Hands the bytes still to come (at least one) to telnet_receive.
-; Returns C=0.
+; Returns C=0. The BASIC ROM stays off meanwhile, so what
+; telnet_receive calls must leave R6510 as it finds it.
 receive_deliver:
--   jsr receive_byte
-    jsr telnet_receive
-    lda .left
-    ora .left+1
-    bne -
+    lda #R6510_NO_BASIC
+    sta R6510
+.rx:
+    lda $ffff
+    inc .rx+1
+    bne +
+    inc .rx+2
++   jsr telnet_receive
+    lda .rx+1
+    cmp .end
+    bne .rx
+    lda .rx+2
+    cmp .end+1
+    bne .rx
+    lda #R6510_DEFAULT
+    sta R6510
     clc
     rts
 
@@ -42,21 +61,21 @@ receive_deliver:
 receive_byte:
     lda #R6510_NO_BASIC
     sta R6510
-.rx:
+    lda .rx+1
+    sta .byte+1
+    lda .rx+2
+    sta .byte+2
+    inc .rx+1
+    bne .byte
+    inc .rx+2
+.byte:
     lda $ffff
     pha
     lda #R6510_DEFAULT
     sta R6510
-    inc .rx+1
-    bne +
-    inc .rx+2
-+   lda .left
-    bne +
-    dec .left+1
-+   dec .left
     pla
     clc
     rts
 
-.left: !word 0              ; bytes still to hand on
+.end: !word 0               ; just past the last byte
 }
