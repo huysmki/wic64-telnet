@@ -10,11 +10,13 @@ SETNAM = $ffbd
 OPEN   = $ffc0
 CLOSE  = $ffc3
 CHKIN  = $ffc6
+CHKOUT = $ffc9
 CLRCHN = $ffcc
 CHRIN  = $ffcf
 CHROUT = $ffd2
 LOAD   = $ffd5
 SAVE   = $ffd8
+STOP   = $ffe1
 GETIN  = $ffe4
 PLOT   = $fff0
 
@@ -112,10 +114,17 @@ zp_a = $fb
 zp_b = $fd
 
 ; Memory map
+;   $02a7-$02f6  the scrollback viewer: a row's colours
+;   $0334-$03fb  TRANSIENT: the cassette buffer, free but for the WiC64
+;                library starting another program (the portal). Used by
+;                one thing at a time: a file transfer's variables, the
+;                scrollback viewer's status line, the address book's
+;                host for O until the session has copied it
 ;   $0801-$37ff  program, first part
 ;   $3800-$3fff  CHARSET: ASCII character set for the ANSI modes
 ;   $4000-$57ff  program, second part
-;   $5800-$5fff  40 columns: the screen while the scrollback is shown
+;   $5800-$5fff  40 columns: the screen while the scrollback is shown;
+;                TRANSFER_BUFFER during a file transfer
 ;   $6000-$7fff  80 columns: the cells of the screen and of the
 ;                alternate screen
 ;   $8000-$83ff  80 columns: FONT80
@@ -130,11 +139,20 @@ zp_b = $fd
 ;   $e000-$ff3f  80 columns: the bitmap, in the RAM under the KERNAL ROM
 ;   $fffa-$ffff  80 columns: interrupt vectors for while the KERNAL ROM
 ;                is switched off
+TRANSIENT        = $0334
+TRANSIENT_END    = $03fc
+XFER_VARIABLES   = TRANSIENT
+XFER_VARIABLES_END = TRANSIENT_END
+scrollback_status = TRANSIENT     ; 40 bytes
+book_open_host   = TRANSIENT      ; 39 bytes
+scrollback_row_colors = $02a7     ; 80 bytes
 CHARSET          = $3800
 PROGRAM_LIMIT    = $5800
 scrollback_screen = $5800         ; 25 rows of screen codes
 scrollback_colors = $5c00         ; and of colours, laid out like
                                   ; SCREEN and COLOR_RAM
+TRANSFER_BUFFER  = $5800          ; a block of a file transfer (the
+                                  ; scrollback is not shown meanwhile)
 CELLS80          = $6000          ; 24 rows of 80 screen codes, and
 CELLS80_COLORS   = CELLS80 + $0800 ; of colours
 ALT_CELLS80      = $7000          ; the same for the alternate screen
@@ -156,7 +174,10 @@ box_save_links   = BSS + $0280    ; 25 bytes
 net_response     = BSS + $0300    ; 256 bytes
 alt_screen_buffer = BSS + $0400   ; 24 rows * (40 screen + 40 color)
 book_load_buffer = alt_screen_buffer ; 1 KB, only used at start-up
-BSS_END          = alt_screen_buffer + 24 * 80
+disk_status      = alt_screen_buffer + 24 * 80 ; 40 bytes: the drive's
+                                  ; last status message, 0-terminated
+scrollback_row_chars = disk_status + 40 ; 80 bytes
+BSS_END          = scrollback_row_chars + 80
 MATRIX80         = $cc00
 BITMAP80         = $e000
 !if BSS_END > MATRIX80 {

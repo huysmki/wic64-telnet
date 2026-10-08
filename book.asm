@@ -21,6 +21,9 @@ BOOK_ENTRY_MODE = BOOK_ENTRY_SIZE - 1
 !zone book {
 .MAX_ENTRIES = 16
 .HOST_MAX = 38
+!if .HOST_MAX + 1 > 39 {
+    !error "book_open_host has room for 39 bytes"
+}
 .ENTRY_SIZE = BOOK_ENTRY_SIZE
 .ENTRY_MODE = BOOK_ENTRY_MODE
 .FIRST_ROW = 2
@@ -36,7 +39,7 @@ book_init:
     cmp #31
     bcc ++
 +   lda #8
-++  sta .device
+++  sta disk_device
     lda #0
     jsr SETMSG              ; no KERNAL "SEARCHING/LOADING" messages
 
@@ -45,7 +48,7 @@ book_init:
     ldy #>.filename
     jsr SETNAM
     lda #1
-    ldx .device
+    ldx disk_device
     ldy #0                  ; load to the address given below
     jsr SETLFS
     lda #0
@@ -168,8 +171,8 @@ book_menu:
     jsr .ask_host
     bcs .key_again
     jsr .take_host
-    lda #<.open_host
-    ldy #>.open_host
+    lda #<book_open_host
+    ldy #>book_open_host
     ldx #TERM_PETSCII
     clc
     rts
@@ -386,19 +389,19 @@ book_menu:
     bcc -
     rts
 
-; Copies the input line to .open_host like .store_host does.
+; Copies the input line to book_open_host like .store_host does.
 .take_host:
     jsr .skip_spaces
     ldy #0
 -   lda INPUT_BUFFER,x
-    sta .open_host,y
+    sta book_open_host,y
     beq +
     inx
     iny
     cpy #.HOST_MAX
     bcc -
     lda #0
-    sta .open_host,y
+    sta book_open_host,y
 +   rts
 
 ; Returns X = index of the first non-blank character of the input.
@@ -501,7 +504,7 @@ book_menu:
     lda #.scratch_tmp_length ; left over from an earlier failed save
     ldx #<.scratch_tmp
     ldy #>.scratch_tmp
-    jsr .disk_command
+    jsr disk_command
     bcs .disk_failed
 
     lda #.tmp_filename_length
@@ -509,7 +512,7 @@ book_menu:
     ldy #>.tmp_filename
     jsr SETNAM
     lda #1
-    ldx .device
+    ldx disk_device
     ldy #0
     jsr SETLFS
     lda #<.file
@@ -521,18 +524,18 @@ book_menu:
     ldy #>.file_end
     jsr SAVE
     bcs .kernal_error
-    jsr .read_drive_status
+    jsr disk_read_status
     bcs .drive_error_message
 
     lda #.scratch_length
     ldx #<.scratch
     ldy #>.scratch
-    jsr .disk_command
+    jsr disk_command
     bcs .disk_failed
     lda #.rename_length
     ldx #<.rename
     ldy #>.rename
-    jsr .disk_command
+    jsr disk_command
     bcs .disk_failed
     lda #<.saved_message
     ldy #>.saved_message
@@ -553,19 +556,20 @@ book_menu:
     rts
 
 .drive_error_message:
-    lda .drive_status
+    lda disk_status
     beq .unknown_disk_error
-    lda #<.drive_status
-    ldy #>.drive_status
+    lda #<disk_status
+    ldy #>disk_status
     rts
 
-; Sends the DOS command at X/Y (length A) and reads the drive status.
+; Sends the DOS command at X/Y (length A) and reads the drive status
+; (also for file transfers).
 ; Returns C=1 on failure: Z=1 if the drive could not be reached
 ; (A = KERNAL error), Z=0 if it reported an error.
-.disk_command:
+disk_command:
     jsr SETNAM
     lda #15
-    ldx .device
+    ldx disk_device
     ldy #15
     jsr SETLFS
     jsr OPEN
@@ -576,24 +580,41 @@ book_menu:
     pla
     plp
     bcs .command_failed
-    jsr .read_drive_status
+    jsr disk_read_status
     lda #1                  ; Z=0: the drive reported the error
     rts
 .command_failed:
     ldx #0                  ; Z=1: A = KERNAL error
     rts
 
-; Reads the drive's status message into .drive_status.
-; Returns C=1 if it reports an error.
-.read_drive_status:
+; Reads the drive's status message into disk_status (0-terminated,
+; empty if the drive could not be reached). Returns C=1 if it reports
+; an error. Also used by file transfers.
+disk_read_status:
+    jsr disk_open_command_channel
+    bcs .status_failed
+    jsr disk_read_open_status
+    php
+    lda #15
+    jsr CLOSE
+    plp
+    rts
+
+; Opens the drive's command channel as logical file 15. C=1 if the
+; drive could not be reached.
+disk_open_command_channel:
     lda #0
     jsr SETNAM
     lda #15
-    ldx .device
+    ldx disk_device
     ldy #15
     jsr SETLFS
-    jsr OPEN
-    bcs .status_failed
+    jmp OPEN
+
+; The same as disk_read_status, from the command channel opened with
+; disk_open_command_channel. While another file on the drive is open,
+; the channel must stay open: closing it closes all of the drive's files.
+disk_read_open_status:
     ldx #15
     jsr CHKIN
     bcs .status_failed
@@ -601,19 +622,17 @@ book_menu:
 -   jsr CHRIN
     cmp #$0d
     beq +
-    sta .drive_status,y
+    sta disk_status,y
     iny
     jsr READST
     bne +
     cpy #39
     bcc -
 +   lda #0
-    sta .drive_status,y
+    sta disk_status,y
     jsr CLRCHN
-    lda #15
-    jsr CLOSE
     ; "00" is OK, "01" follows a scratch, anything from "20" is an error
-    lda .drive_status
+    lda disk_status
     cmp #"2"
     rts
 
@@ -622,7 +641,7 @@ book_menu:
     lda #15
     jsr CLOSE
     lda #0                  ; no status text
-    sta .drive_status
+    sta disk_status
     sec
     rts
 
@@ -630,7 +649,7 @@ book_menu:
 ; Data
 ;---------------------------------------------------------
 
-.device:   !byte 8
+disk_device: !byte 8         ; the drive the program was loaded from
 .selected: !byte 0
 .index:    !byte 0
 .message:  !word .empty_text
@@ -668,8 +687,6 @@ book_menu:
 .rename:   !pet "r0:telnet.cfg=telnet.tmp"
 .rename_length = * - .rename
 
-.open_host:    !fill .HOST_MAX + 1, 0
-.drive_status: !fill 40, 0
 
 .title:
     !pet PET_RVS_ON, PET_LIGHT_GREEN

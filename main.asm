@@ -31,6 +31,8 @@
     jmp start
 
 wic64_include_enter_portal = 1
+wic64_optimize_for_size = 1 ; one handshake routine instead of a copy in
+                            ; every loop: some 350 bytes for 12 cycles a byte
 !src "wic64.h"
 !src "wic64.asm"
 
@@ -45,6 +47,7 @@ wic64_include_enter_portal = 1
 !src "ansi.asm"
 !src "charmaps.asm"
 !src "screen80.asm"
+!src "session.asm"
 
 start:
     jsr move_high_part
@@ -121,9 +124,9 @@ low_end:
 
 high_part_load:
 !pseudopc HIGH_PART {
-!src "session.asm"
 !src "scrollback.asm"
 !src "book.asm"
+!src "xfer.asm"
 }
 high_part_end:
 HIGH_PAGES = (high_part_end - high_part_load + $ff) >> 8
@@ -133,4 +136,12 @@ HIGH_PAGES = (high_part_end - high_part_load + $ff) >> 8
 }
 !if HIGH_PART + HIGH_PAGES * $100 > PROGRAM_LIMIT {
     !error "Program overlaps the memory at PROGRAM_LIMIT"
+}
+
+!if TEST {
+* = TEST_DATA
+!src "test/scenarios.asm"
+    !if * > NET_RX_BUFFER {
+        !error "The test data runs into NET_RX_BUFFER"
+    }
 }

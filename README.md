@@ -68,10 +68,49 @@ host that isn't in the list (starts in PETSCII mode), `←` WiC64 portal. When
 editing, the C64 screen editor overwrites text; use `INST` to insert.
 
 Online: `F1` hang up, `F3` type a whole line (up to 80 characters),
-`F5` local echo on/off, `F7` session menu (mode, echo, scrollback, Telnet
-break / interrupt / are-you-there, hang up), `SHIFT F7` scrollback.
+`F5` local echo on/off, `F7` session menu (mode, echo, scrollback, file
+download, Telnet break / interrupt / are-you-there, hang up), `SHIFT F7`
+scrollback.
 `RUN/STOP`+`RESTORE` leaves the program for BASIC in any mode, without
 hanging up; `RUN` starts it again.
+
+## File downloads
+
+Many BBSes have file areas. Start the download on the BBS first, then press
+`F7`, `D` and pick the protocol:
+
+- `X` **XMODEM**, what PC BBSes (and most others) offer. The client asks for
+  CRC and takes 128-byte as well as 1 KB blocks (XMODEM-1K), or falls back to
+  a checksum. It asks for the file type (PRG, SEQ or USR). XMODEM pads the
+  last block with `$1A` bytes, which stay at the end of the file, as with
+  CCGMS: the protocol doesn't say where a file ends.
+- `P` **Punter** (C1), the protocol of Commodore BBSes. The sender gives the
+  file type, and the file arrives at its exact length.
+
+A Commodore BBS that is ready to send with Punter repeats `GOO` until the
+terminal answers. After three `GOO`s in a row the client starts the download
+by itself, at once, as some BBSes give up when the answer takes too long.
+After a download that stopped or failed, it doesn't start again by itself
+until the BBS has sent something else.
+
+**Multi-Punter**, which some BBSes offer, sends several files in one go,
+each announced by a header with its name and type, which the BBS repeats
+until the terminal answers. The client starts each download as soon as the
+header comes, saves the file under that name without asking (unless the
+drive refuses it), closes the box at once and is ready for the next one,
+until the BBS says there are no more.
+
+The file is saved as `download.tmp` on the drive the program was loaded from
+(device 8 if unknown), while a box shows how many bytes have come in; neither
+protocol sends the file's name. Once it is complete, the client asks for the
+name and renames the file, asking again if the drive refuses (such as
+`63, FILE EXISTS`). `RUN/STOP` stops the download (an XMODEM sender is told
+to stop too); what came so far stays as `download.tmp`, which the next
+download replaces. If the drive reports another error, the box shows it. In VICE, with a 1541, an XMODEM-1K
+download ran at about 230 bytes a second.
+
+The client doesn't take Telnet commands out of the data unless the server
+spoke Telnet: many Commodore BBSes don't, and their files contain `$FF`.
 
 ## Scrollback
 
@@ -154,7 +193,9 @@ leaves the old list on the disk.
 Based on the [WiC64 Simple Telnet Client](https://github.com/WiC64-Team/wic64-telnet)
 by Henning Liebenau, and built on his
 [WiC64 library](https://github.com/WiC64-Team/wic64-library) (`wic64.asm`,
-`wic64.h`, included unchanged). Both are under the BSD 2-Clause licence, and
+`wic64.h`, included unchanged). The Punter download follows
+[CCGMS Term](https://github.com/mist64/ccgmsterm) and its test version of
+Per Olofsson's [CGTerm](https://github.com/MagerValp/CGTerm) Punter code. Both are under the BSD 2-Clause licence, and
 so is this program: see [`LICENSE.txt`](LICENSE.txt), which also applies
 to the `telnet.prg` download.
 
@@ -172,7 +213,8 @@ to the `telnet.prg` download.
 | `session.asm` | connection loop, session keys, status line, retry |
 | `scrollback.asm` | rows that left the screen, and the viewer for them |
 | `screen80.asm` | 80 columns: font, bitmap drawing, the split with the text screen |
-| `book.asm` | address book start screen, disk load/save |
+| `book.asm` | address book start screen, disk load/save, drive status |
+| `xfer.asm` | file downloads: XMODEM and Punter |
 | `ui.asm` | printing, popup boxes, line input, clock |
 | `test/` | fake network, scripted scenarios, expected results |
 | `tools/` | `run_test.py`: runs a test build in VICE for `make check` |
@@ -181,10 +223,14 @@ Memory: the program runs in two parts around the ANSI character set at
 `$3800`: `$0801`–`$37FF` and `$4000`–`$57FF` (both checked at build time).
 The second part is stored right after the first in `telnet.prg` and moved up
 at start-up. While the scrollback is shown the screen is kept at
-`$5800`–`$5FFF`; the scrollback itself is at `$6000`–`$9FFF`. What one read
-from the WiC64 brings (at most 8 KB) is received at `$A000`–`$BFFF`, in the
-RAM under the BASIC ROM, before it is handled. Buffers (popup boxes, address
-book loading, the alternate screen) are at `$C000`–`$CBFF`. 80 columns use
+`$5800`–`$5FFF`, which a file download uses for its blocks; the scrollback
+itself is at `$6000`–`$9FFF`. What one read from the WiC64 brings (at most
+8 KB) is received at `$A000`–`$BFFF`, in the RAM under the BASIC ROM, before
+it is handled. Buffers (popup boxes, address book loading, the alternate
+screen, the drive's status, a scrollback row) are at `$C000`–`$CBFF`, a
+scrollback row's colours at `$02A7`. The cassette buffer at `$0334` holds,
+one at a time, a file download's variables, the scrollback viewer's status
+line and the host typed after `O`. 80 columns use
 `$6000`–`$83FF` for their cells and font (the scrollback then starts at
 `$8400`), the bitmap's colours at `$CC00` and the bitmap itself in the RAM
 under the KERNAL ROM, at `$E000`.

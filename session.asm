@@ -65,7 +65,10 @@ session_run:
 +   jsr term_cursor_show
     jsr net_poll
     bcs .failed
-    lda #.AUTO_RETRIES
+    lda xfer_offered        ; a BBS waits to send a file
+    beq +
+    jsr xfer_offer
++   lda #.AUTO_RETRIES
     sta .retries
     jsr .handle_keys
     bcc .loop
@@ -236,6 +239,11 @@ session_run:
     jsr scrollback_view
     clc
     rts
++   cmp #"D"
+    bne +
+    jsr xfer_download
+    clc
+    rts
 +   ldx #.COMMAND_COUNT-1
 -   cmp .command_keys,x
     beq +
@@ -367,7 +375,8 @@ session_run:
                   !pet PET_WHITE, "H", PET_GREEN, " hang up", 0
 .menu_line3:      !pet PET_WHITE, "B", PET_GREEN, " send break   "
                   !pet PET_WHITE, "I", PET_GREEN, " interrupt", 0
-.menu_line4:      !pet PET_WHITE, "A", PET_GREEN, " are you there", 0
+.menu_line4:      !pet PET_WHITE, "D", PET_GREEN, " download     "
+                  !pet PET_WHITE, "A", PET_GREEN, " are you there", 0
 .retry_prompt:    !pet PET_YELLOW, "F1 ", PET_RED, "Abort  "
                   !pet PET_YELLOW, "F3 ", PET_RED, "Retry", 0
 .echo_screen:     !scr "echo"
