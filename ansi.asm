@@ -1439,14 +1439,22 @@ ansi_output_utf8:
     jsr .point_at_row
     ldy ansi_x
     lda .char
+    ldx .draw_color
     cmp #SC_FULL_BLOCK
     beq .put_block
     eor .draw_mask
-    sta (zp_a),y
-    lda .draw_color
-.put_color:
+.put_cell:                  ; A = screen code, X = colour
+    cmp (zp_a),y            ; already there (much of a redrawn frame):
+    bne +                   ; nothing to draw
+    txa
+    cmp (zp_b),y
+    beq .put_advance
+    lda (zp_a),y
++   sta (zp_a),y
+    txa
     sta (zp_b),y
     jsr .draw_cell
+.put_advance:
     cpy .last_col
     bcs +
     inc ansi_x
@@ -1456,9 +1464,8 @@ ansi_output_utf8:
     rts
 .put_block:
     lda .block_char
-    sta (zp_a),y
-    lda .block_color
-    jmp .put_color
+    ldx .block_color
+    jmp .put_cell
 
 .clear_wrap:
     lda #0
