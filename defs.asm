@@ -112,6 +112,10 @@ COLOR_LIGHT_GREY  = $0f
 ; them across calls into other modules
 zp_a = $fb
 zp_b = $fd
+; The row the ANSI driver writes characters to (ansi.asm's .put): the
+; KERNAL's RS-232 buffer pointers, unused
+zp_put_a = $f7
+zp_put_b = $f9
 
 ; Memory map
 ;   $02a7-$02f6  the scrollback viewer: a row's colours

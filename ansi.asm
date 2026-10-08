@@ -43,6 +43,7 @@
 
 ; Full reset: default attributes and modes, cleared screen, cursor home.
 ansi_reset:
+    jsr .forget_put_row
     lda #0
     sta ansi_x
     sta ansi_y
@@ -617,6 +618,8 @@ ansi_output_utf8:
 ; (ALT_CELLS80), so only the table of rows changes, and the bitmap is
 ; drawn again on the way out.
 .alternate_screen80:
+    ldx #$ff                ; .forget_put_row, keeping A
+    stx .put_row
     jsr term_alternate_rows
     lda .set_mode
     beq +
@@ -1439,23 +1442,25 @@ ansi_output_utf8:
     sta ansi_x
     jsr .linefeed
 +   ldx ansi_y
-    jsr .point_at_row
-    ldy ansi_x
+    cpx .put_row
+    beq +
+    jsr .point_put_row
++   ldy ansi_x
     lda .char
     ldx .draw_color
     cmp #SC_FULL_BLOCK
     beq .put_block
     eor .draw_mask
 .put_cell:                  ; A = screen code, X = colour
-    cmp (zp_a),y            ; already there (much of a redrawn frame):
+    cmp (zp_put_a),y        ; already there (much of a redrawn frame):
     bne +                   ; nothing to draw
     txa
-    cmp (zp_b),y
+    cmp (zp_put_b),y
     beq .put_advance
-    lda (zp_a),y
-+   sta (zp_a),y
+    lda (zp_put_a),y
++   sta (zp_put_a),y
     txa
-    sta (zp_b),y
+    sta (zp_put_b),y
     jsr .draw_cell
 .put_advance:
     cpy .last_col
@@ -1469,6 +1474,26 @@ ansi_output_utf8:
     lda .block_char
     ldx .block_color
     jmp .put_cell
+
+; X = row: points zp_put_a and zp_put_b at it, for .put to write to
+; until the row changes, or the rows move (.forget_put_row).
+.point_put_row:
+    stx .put_row
+    jsr .point_at_row
+    lda zp_a
+    sta zp_put_a
+    lda zp_a+1
+    sta zp_put_a+1
+    lda zp_b
+    sta zp_put_b
+    lda zp_b+1
+    sta zp_put_b+1
+    rts
+
+.forget_put_row:
+    lda #$ff
+    sta .put_row
+    rts
 
 .clear_wrap:
     lda #0
@@ -1621,6 +1646,7 @@ ansi_output_utf8:
     bne +
     stx .first_row
     sty .last_row
+    jsr .forget_put_row
     jsr term_rows_up
     ldx .first_row
     ldy .last_row
@@ -1647,6 +1673,7 @@ ansi_output_utf8:
     bne +
     stx .first_row
     sty .last_row
+    jsr .forget_put_row
     jsr term_rows_down
     ldx .first_row
     ldy .last_row
@@ -1696,6 +1723,8 @@ ansi_output_utf8:
 ;---------------------------------------------------------
 ; State
 ;---------------------------------------------------------
+
+.put_row:        !byte $ff  ; the row zp_put_a/zp_put_b point at, $ff: none
 
 ; ESC 7 / ESC 8 save and restore everything from ansi_x up to
 ; .SAVED_COUNT together (cursor, attributes, wrap state, character sets)
