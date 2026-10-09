@@ -170,9 +170,13 @@ net_flush:
     sta .request_command
     +net_execute .request, net_response, 1, NET_REQUEST_TIMEOUT
     jsr .result
-    bcs +
+    bcc .sent
+    ldx .oversized          ; the WiC64 did answer, so the bytes went
+    beq +                   ; out: sent again they would come twice
+.sent:
     lda #0
     sta .tx_length
+    clc
 +   rts
 
 ; Returns C=0 and the server's next byte in A, as it came (Telnet
@@ -204,9 +208,11 @@ net_read_byte:
 ; VIC, and the user port's direction, which then fights the WiC64).
 ; A response that does not fit is received without being stored,
 ; until the WiC64 stops sending, and counts as a timeout, so that the
-; session tries again.
+; session tries again; .oversized tells it apart from one.
 net_execute:
     stx .response_pages
+    ldx #0
+    stx .oversized
     ldx wic64_timeout
     stx wic64_configured_timeout
     sta wic64_timeout
@@ -231,6 +237,7 @@ net_execute:
     rts
 
 .too_big:
+    inc .oversized
     lda #0                  ; wic64_finalize puts the store back
     sta wic64_auto_discard_response
     +wic64_set_store_instruction wic64_nop_instruction
@@ -278,6 +285,7 @@ net_error_text:
 
 .y: !byte 0
 .response_pages: !byte 0
+.oversized:      !byte 0    ; 1: the last response did not fit
 .last_read: !byte 0         ; JIFFY_LO at the last read
 .idle_wait: !byte 0         ; jiffies to wait after it
 
