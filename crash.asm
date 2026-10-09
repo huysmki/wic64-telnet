@@ -14,6 +14,8 @@
 ;          with the 32 bytes before it: what the server sent last
 ;   MODE   the terminal mode, the last WiC64 status and where the
 ;          server's data goes (telnet_sink)
+;   WIC64  the size of the response being received or last received,
+;          and the page of memory it was being written to
 ;
 ; Only a reset gets out of it. RESTORE on its own does nothing, as
 ; before. If the CPU has jammed (an illegal opcode), nothing reacts at

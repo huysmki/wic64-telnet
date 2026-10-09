@@ -174,7 +174,7 @@ SCROLLBACK_80    = $8400
     SCROLLBACK_80_END = $a000
 }
 NET_RX_BUFFER    = $a000          ; 8 KB: the most the WiC64 firmware
-                                  ; reads at a time
+NET_RX_PAGES     = $20            ; reads at a time
 CRASH_REPORT     = $d000
 BSS              = $c000
 box_save_buffer  = BSS            ; 8 rows * (40 screen + 40 color)

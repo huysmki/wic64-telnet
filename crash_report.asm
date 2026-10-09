@@ -141,6 +141,20 @@
     jsr .hex_digits
     lda telnet_sink
     jsr .hex
+    ldx #20                 ; the WiC64 response being received
+    jsr .row
+    ldx #.SIZE
+    jsr .label
+    lda wic64_response_size+1
+    jsr .hex_digits
+    lda wic64_response_size
+    jsr .hex
+    ldx #.PAGE
+    jsr .label
+    lda wic64_destination_pointer_pages+1
+    jsr .hex_digits
+    lda wic64_destination_pointer_pages
+    jsr .hex
 
     ldx #22
     jsr .row
@@ -271,6 +285,10 @@
     !scr " net ", 0
 .SINK = * - .labels
     !scr " sink ", 0
+.SIZE = * - .labels
+    !scr "wic64 size ", 0
+.PAGE = * - .labels
+    !scr " page ", 0
 .PHOTO = * - .labels
     !scr "please take a photo of this screen.", 0
 .RESET = * - .labels

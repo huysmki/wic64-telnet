@@ -47,6 +47,16 @@ NET_IDLE_JIFFIES = 8        ; at most 8/60 s between reads that bring
 
 net_status: !byte 0
 
+; Like +wic64_execute, with the most bytes the response may have, in
+; pages: the size of the buffer it goes to.
+!macro net_execute .request, .response, .pages, .timeout {
+    +wic64_set_request .request
+    +wic64_set_response .response
+    lda #.timeout
+    ldx #.pages
+    jsr net_execute
+}
+
 ; Returns C=1 if no WiC64 answers, otherwise Z=0 if its firmware is
 ; too old (before 2.0.0) and Z=1 if it is ready.
 net_init:
@@ -77,11 +87,11 @@ net_open:
     jsr receive_start       ; nothing left of a previous connection
     lda #WIC64_TCP_OPEN
     sta .request_command
-    +wic64_execute .request, net_response, NET_OPEN_TIMEOUT
+    +net_execute .request, net_response, 1, NET_OPEN_TIMEOUT
     jmp .result
 
 net_close:
-    +wic64_execute .close_request, net_response, NET_REQUEST_TIMEOUT
+    +net_execute .close_request, net_response, 1, NET_REQUEST_TIMEOUT
     jmp .result
 
 ; Queues A for the server. Preserves X and Y. Bytes beyond the queue
@@ -120,7 +130,7 @@ net_poll:
     sta .idle_wait          ; an answer is likely to follow soon
 
 .read:
-    +wic64_execute .read_request, NET_RX_BUFFER, NET_POLL_TIMEOUT
+    +net_execute .read_request, NET_RX_BUFFER, NET_RX_PAGES, NET_POLL_TIMEOUT
     php
     pha
     lda JIFFY_LO
@@ -158,7 +168,7 @@ net_flush:
 +   sta .request_size
     lda #WIC64_TCP_WRITE
     sta .request_command
-    +wic64_execute .request, net_response, NET_REQUEST_TIMEOUT
+    +net_execute .request, net_response, 1, NET_REQUEST_TIMEOUT
     jsr .result
     bcs +
     lda #0
@@ -172,7 +182,7 @@ net_read_byte:
     jsr receive_pending
     beq +
     jmp receive_byte
-+   +wic64_execute .read_request, NET_RX_BUFFER, NET_POLL_TIMEOUT
++   +net_execute .read_request, NET_RX_BUFFER, NET_RX_PAGES, NET_POLL_TIMEOUT
     jsr .result
     bcs +
     lda wic64_response_size
@@ -182,6 +192,53 @@ net_read_byte:
     beq +
     jmp receive_byte
 +   rts
+
+; Carries out the request set with +wic64_set_request, the response
+; going to +wic64_set_response; A = timeout, X = the most pages the
+; response may fill. Returns like wic64_execute: C=1 on a timeout,
+; otherwise A = the WiC64 status.
+;
+; Now and then a handshake gets lost while the response's size is read,
+; and the size comes out as anything up to 64 KB. Received whole, that
+; would run past the buffer, over the client and the I/O area (the
+; VIC, and the user port's direction, which then fights the WiC64).
+; A response that does not fit is received without being stored,
+; until the WiC64 stops sending, and counts as a timeout, so that the
+; session tries again.
+net_execute:
+    stx .response_pages
+    ldx wic64_timeout
+    stx wic64_configured_timeout
+    sta wic64_timeout
+    +wic64_initialize
+    +wic64_send_header
+    bcs .executed
+    +wic64_send
+    bcs .executed
+    +wic64_receive_header
+    bcs .executed
+    lda wic64_response_size+1
+    cmp .response_pages
+    bcc .fits
+    bne .too_big
+    lda wic64_response_size
+    bne .too_big
+.fits:
+    +wic64_receive
+    bcs .executed
+    +wic64_finalize
+.executed:
+    rts
+
+.too_big:
+    lda #0                  ; wic64_finalize puts the store back
+    sta wic64_auto_discard_response
+    +wic64_set_store_instruction wic64_nop_instruction
+    +wic64_receive          ; usually ends with a timeout, as the size
+    bcs +                   ; was wrong, which has finalised already
+    +wic64_finalize
++   sec
+    rts
 
 ; Turns the outcome of a WiC64 request (C = timeout, A = status) into
 ; C=1 on any failure, recording net_status.
@@ -201,7 +258,7 @@ net_error_text:
     lda net_status
     cmp #NET_TIMEOUT
     beq .timeout_text
-    +wic64_execute .status_request, net_response, NET_REQUEST_TIMEOUT
+    +net_execute .status_request, net_response, 1, NET_REQUEST_TIMEOUT
     bcs .timeout_text
     ldy wic64_response_size
     lda wic64_response_size+1
@@ -220,6 +277,7 @@ net_error_text:
 .timeout_message: !pet "WiC64 did not answer in time", 0
 
 .y: !byte 0
+.response_pages: !byte 0
 .last_read: !byte 0         ; JIFFY_LO at the last read
 .idle_wait: !byte 0         ; jiffies to wait after it
 
