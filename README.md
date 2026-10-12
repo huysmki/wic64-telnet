@@ -191,7 +191,7 @@ online when this version was made:
 | 3 | Cottonwood BBS | `cottonwoodbbs.dyndns.org:6502` | PETSCII |
 | 4 | Rapid Fire BBS | `rapidfire.hopto.org:64128` | PETSCII |
 | 5 | Raveolution BBS | `raveolution.hopto.org:64128` | PETSCII |
-| 6 | Level 29 | `bbs.fozztexx.com:23` | PETSCII |
+| 6 | Level 29 | `bbs.fozztexx.com:23` | ANSI |
 | 7 | RetroCampus BBS | `bbs.retrocampus.com:6510` | PETSCII |
 | 8 | Vertrauen (home of Synchronet) | `vert.synchro.net:23` | ANSI |
 | 9 | Telehack | `telehack.com:23` | UTF-8 80 |

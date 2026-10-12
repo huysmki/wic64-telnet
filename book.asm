@@ -898,7 +898,7 @@ book_label:  !fill .NAME_MAX + 1, 0
     +book_entry "cottonwoodbbs.dyndns.org:6502", TERM_PETSCII, "Cottonwood BBS"
     +book_entry "rapidfire.hopto.org:64128", TERM_PETSCII, "Rapid Fire BBS"
     +book_entry "raveolution.hopto.org:64128", TERM_PETSCII, "Raveolution BBS"
-    +book_entry "bbs.fozztexx.com:23", TERM_PETSCII, "Level 29"
+    +book_entry "bbs.fozztexx.com:23", TERM_ANSI, "Level 29"
     +book_entry "bbs.retrocampus.com:6510", TERM_PETSCII, "RetroCampus BBS"
     +book_entry "vert.synchro.net:23", TERM_ANSI, "Vertrauen"
     +book_entry "telehack.com:23", TERM_UTF8_80, "Telehack"
