@@ -23,9 +23,8 @@
 ; illegal opcode), nothing reacts at all, RUN/STOP + RESTORE neither.
 ;
 ; The report (crash_report.asm) is copied to CRASH_REPORT, in the RAM
-; under the I/O area, at start-up: only what has to see the I/O area
-; is here. The copying (crash_setup) runs once, where it was loaded,
-; as the high part then moves over it.
+; under the I/O area, at start-up (main.asm): only what has to see the
+; I/O area is here.
 ;---------------------------------------------------------
 
 !zone crash {
@@ -97,36 +96,11 @@ crash_s:      !byte 0       ; the stack pointer in .report
 crash_memory: !byte 0       ; $01
 }
 
-; crash_setup: copies the report into place and takes over the NMI.
-; The code is placed after the report in the program file (main.asm).
+; crash_setup: takes over the NMI, once the report is in place (main.asm
+; copies it at start-up, with the rest of what runs under the I/O area).
 !macro crash_setup {
-    lda #<crash_report_load
-    sta zp_a
-    lda #>crash_report_load
-    sta zp_a+1
-    lda #<CRASH_REPORT
-    sta zp_b
-    lda #>CRASH_REPORT
-    sta zp_b+1
-    sei
-    lda #R6510_ALL_RAM      ; writes to the RAM, not to the I/O
-    sta R6510
-    ldx #CRASH_REPORT_PAGES
-    ldy #0
--   lda (zp_a),y
-    sta (zp_b),y
-    iny
-    bne -
-    inc zp_a+1
-    inc zp_b+1
-    dex
-    bne -
-    lda #R6510_DEFAULT
-    sta R6510
     lda #<crash_nmi
     sta $0318
     lda #>crash_nmi
     sta $0319
-    cli
-    rts
 }

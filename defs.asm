@@ -129,7 +129,8 @@ zp_put_b = $f9
 ;   $3800-$3fff  CHARSET: ASCII character set for the ANSI modes
 ;   $4000-$57ff  program, second part
 ;   $5800-$5fff  40 columns: the screen while the scrollback is shown;
-;                TRANSFER_BUFFER during a file transfer
+;                TRANSFER_BUFFER during a file transfer; BOOK_LIST: the
+;                address book while the start screen shows it
 ;   $6000-$7fff  80 columns: the cells of the screen and of the
 ;                alternate screen
 ;   $8000-$83ff  80 columns: FONT80
@@ -141,8 +142,9 @@ zp_put_b = $f9
 ;                is used for line input)
 ;   $c000-$cbff  BSS: uninitialised buffers
 ;   $cc00-$cfe7  80 columns: colours of the bitmap (VIC bank 3)
-;   $d000-$dfff  CRASH_REPORT: the crash report (crash.asm), in the RAM
-;                under the I/O area
+;   $d000-$dfff  UNDER_IO, the RAM under the I/O area: CRASH_REPORT
+;                (crash.asm) and from $d400 BOOK_STORE, where the
+;                address book is kept meanwhile
 ;   $e000-$ff3f  80 columns: the bitmap, in the RAM under the KERNAL ROM
 ;   $fffa-$ffff  80 columns: interrupt vectors for while the KERNAL ROM
 ;                is switched off
@@ -175,7 +177,10 @@ SCROLLBACK_80    = $8400
 }
 NET_RX_BUFFER    = $a000          ; 8 KB: the most the WiC64 firmware
 NET_RX_PAGES     = $20            ; reads at a time
-CRASH_REPORT     = $d000
+UNDER_IO         = $d000
+CRASH_REPORT     = UNDER_IO
+BOOK_STORE       = $d400          ; 1 KB
+BOOK_LIST        = $5800          ; 1 KB
 BSS              = $c000
 box_save_buffer  = BSS            ; 8 rows * (40 screen + 40 color)
 box_save_links   = BSS + $0280    ; 25 bytes

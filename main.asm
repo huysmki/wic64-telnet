@@ -99,7 +99,7 @@ move_high_part:
     lda .high_part_moved
     bne .moved
     inc .high_part_moved
-    jsr crash_setup         ; first, as the high part moves over it
+    jsr under_io_setup      ; first, as the high part moves over it
     lda #<(high_part_load + (HIGH_PAGES - 1) * $100)
     sta zp_a
     lda #>(high_part_load + (HIGH_PAGES - 1) * $100)
@@ -144,18 +144,56 @@ HIGH_PAGES = (high_part_end - high_part_load + $ff) >> 8
     !error "Program overlaps the memory at PROGRAM_LIMIT"
 }
 
-; The crash report: copied to the RAM under the I/O area at start-up
-crash_report_load:
-!pseudopc CRASH_REPORT {
+; What runs or is kept in the RAM under the I/O area (the crash report,
+; the address book): loaded after the high part, copied there once at
+; start-up by under_io_setup
+under_io_load:
+!pseudopc UNDER_IO {
 !src "crash_report.asm"
+!if * > BOOK_STORE {
+    !error "The crash report runs into BOOK_STORE"
 }
-crash_report_end:
-crash_setup:
+!fill BOOK_STORE - *, 0
+    +book_defaults
+}
+under_io_end:
+UNDER_IO_PAGES = (under_io_end - under_io_load + $ff) >> 8
+!if UNDER_IO + UNDER_IO_PAGES * $100 > $e000 {
+    !error "What goes under the I/O area does not fit"
+}
+
+; Runs where it was loaded: the high part moves over it afterwards.
+under_io_setup:
+    lda #<under_io_load
+    sta zp_a
+    lda #>under_io_load
+    sta zp_a+1
+    lda #<UNDER_IO
+    sta zp_b
+    lda #>UNDER_IO
+    sta zp_b+1
+    sei
+    lda #R6510_ALL_RAM      ; writes to the RAM, not to the I/O
+    sta R6510
+    ldx #UNDER_IO_PAGES
+    ldy #0
+-   lda (zp_a),y
+    sta (zp_b),y
+    iny
+    bne -
+    inc zp_a+1
+    inc zp_b+1
+    dex
+    bne -
+    lda #<crash_ignore      ; an NMI while all RAM is switched in (as
+    sta $fffa               ; book.asm does) reads its vector there
+    lda #>crash_ignore
+    sta $fffb
+    lda #R6510_DEFAULT
+    sta R6510
     +crash_setup
-CRASH_REPORT_PAGES = (crash_report_end - crash_report_load + $ff) >> 8
-!if CRASH_REPORT + CRASH_REPORT_PAGES * $100 > $e000 {
-    !error "The crash report does not fit under the I/O area"
-}
+    cli
+    rts
 
 !if TEST {
 * = TEST_DATA

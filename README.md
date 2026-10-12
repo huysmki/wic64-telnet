@@ -64,7 +64,8 @@ exits) and application cursor keys when they ask for them.
 
 Start screen: `CRSR` select, `HOME` first entry, `RETURN` or `1`–`9` connect,
 `N` new, `E` edit, `D` delete, `T` mode, `S` save to disk, `O` connect to a
-host that isn't in the list (starts in PETSCII mode), `←` WiC64 portal. When
+host that isn't in the list (starts in PETSCII mode), `←` WiC64 portal. `N`
+and `E` ask for the host and then for a name (which may stay empty). When
 editing, the C64 screen editor overwrites text; use `INST` to insert.
 
 Online: `F1` hang up, `F3` type a whole line (up to 80 characters),
@@ -179,19 +180,21 @@ mention that too. `RESTORE` on its own does nothing.
 
 ## Address book
 
-It comes with nine servers that were online when this version was made:
+Each server has a name, shown in the list and on the status line; a server
+without a name shows its host instead. It comes with nine servers that were
+online when this version was made:
 
-| # | Server | Mode |
-|---|--------|------|
-| 1 | `8bit.hoyvision.com:6502` (8-Bit Playground) | PETSCII |
-| 2 | `particlesbbs.dyndns.org:6400` (Particles! BBS) | PETSCII |
-| 3 | `cottonwoodbbs.dyndns.org:6502` | PETSCII |
-| 4 | `rapidfire.hopto.org:64128` | PETSCII |
-| 5 | `raveolution.hopto.org:64128` | PETSCII |
-| 6 | `bbs.fozztexx.com:23` (Level 29) | PETSCII |
-| 7 | `bbs.retrocampus.com:6510` | PETSCII |
-| 8 | `vert.synchro.net:23` (Vertrauen, home of Synchronet) | ANSI |
-| 9 | `telehack.com:23` | UTF-8 80 |
+| # | Name | Server | Mode |
+|---|------|--------|------|
+| 1 | 8-Bit Playground | `8bit.hoyvision.com:6502` | PETSCII |
+| 2 | Particles! BBS | `particlesbbs.dyndns.org:6400` | PETSCII |
+| 3 | Cottonwood BBS | `cottonwoodbbs.dyndns.org:6502` | PETSCII |
+| 4 | Rapid Fire BBS | `rapidfire.hopto.org:64128` | PETSCII |
+| 5 | Raveolution BBS | `raveolution.hopto.org:64128` | PETSCII |
+| 6 | Level 29 | `bbs.fozztexx.com:23` | ANSI |
+| 7 | RetroCampus BBS | `bbs.retrocampus.com:6510` | PETSCII |
+| 8 | Vertrauen (home of Synchronet) | `vert.synchro.net:23` | ANSI |
+| 9 | Telehack | `telehack.com:23` | UTF-8 80 |
 
 Telehack writes 80-column text whatever window size it is told, so it is set
 to UTF-8 80; in UTF-8 its longer lines wrap onto two rows.
@@ -199,7 +202,9 @@ to UTF-8 80; in UTF-8 its longer lines wrap onto two rows.
 The list is stored in `telnet.cfg` on the drive the program was loaded from
 (device 8 if unknown). It is loaded at start-up and written when you press `S`:
 first as `telnet.tmp`, which then replaces `telnet.cfg`, so a failed save
-leaves the old list on the disk.
+leaves the old list on the disk. A `telnet.cfg` saved by version 3.2 or older
+(without names) is read as well; the next save writes the new format, which
+those versions no longer read (they start with their own list instead).
 
 ## Credits and licence
 
@@ -248,16 +253,18 @@ one at a time, a file download's variables, the scrollback viewer's status
 line and the host typed after `O`. 80 columns use
 `$6000`–`$83FF` for their cells and font (the scrollback then starts at
 `$8400`), the bitmap's colours at `$CC00` and the bitmap itself in the RAM
-under the KERNAL ROM, at `$E000`. The crash report is copied to the RAM under
-the I/O area, at `$D000`, at start-up.
+under the KERNAL ROM, at `$E000`. The crash report and the address book are
+copied to the RAM under the I/O area at start-up: the report to `$D000`, the
+address book to `$D400`, where it stays during a session; the start screen
+works on a copy at `$5800`.
 
 ## Testing
 
-`make test` builds `build/test1.prg` … `build/test19.prg`. In these the WiC64
+`make test` builds `build/test1.prg` … `build/test24.prg`. In these the WiC64
 is replaced by a fake server that plays back a script, and keys come from a
 script too (`test/scenarios.asm`): PETSCII with Telnet negotiation, ANSI BBS
 output, UTF-8 host output, address book editing, line input, a network error,
-saving and loading `telnet.cfg`, switching to ANSI (or not, for BBSes that
+saving and loading `telnet.cfg` (also one saved by an older version), switching to ANSI (or not, for BBSes that
 only probe for it), a server that stops echoing, the scrollback
 (with a 1 KB buffer, so that it fills up), 80 columns, and the finer points
 of the ANSI and UTF-8 modes. Run one in VICE and look at the screen; what the
