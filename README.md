@@ -64,7 +64,10 @@ exits) and application cursor keys when they ask for them.
 
 Start screen: `CRSR` select, `HOME` first entry, `RETURN` or `1`–`9` connect,
 `N` new, `E` edit, `D` delete, `T` mode, `S` save to disk, `O` connect to a
-host that isn't in the list (starts in PETSCII mode), `←` WiC64 portal. `N`
+host that isn't in the list (starts in PETSCII mode), `$` the disk's
+directory (any key pauses it, `RUN/STOP` ends it), `@` a disk command such as
+`S:FILE` or, for an SD2IEC, `CD/GAMES` (with none, the drive's status), `←`
+WiC64 portal. `N`
 and `E` ask for the host and then for a name, a user name and a password
 (each may stay empty). When
 editing, the C64 screen editor overwrites text; use `INST` to insert.
@@ -240,7 +243,8 @@ to the `telnet.prg` download.
 | `session.asm` | connection loop, session keys, status line, retry |
 | `scrollback.asm` | rows that left the screen, and the viewer for them |
 | `screen80.asm` | 80 columns: font, bitmap drawing, the split with the text screen |
-| `book.asm` | address book start screen, disk load/save, drive status |
+| `book.asm` | address book start screen, disk load/save, drive status, disk commands |
+| `directory.asm` | the start screen's disk directory |
 | `xfer.asm` | file downloads: XMODEM and Punter |
 | `ui.asm` | printing, popup boxes, line input, clock |
 | `crash.asm`, `crash_report.asm` | `RUN/STOP` + `RESTORE`: the crash report |
@@ -263,17 +267,18 @@ line and the host typed after `O`. 80 columns use
 `$8400`), the bitmap's colours at `$CC00` and the bitmap itself in the RAM
 under the KERNAL ROM, at `$E000`. The crash report and the address book are
 copied to the RAM under the I/O area at start-up: the report to `$D000`, the
-address book to `$D400`, where it stays during a session; the start screen
-works on a copy at `$5800`.
+address book to `$D400`, where it stays during a session, with the start
+screen's directory code after it; the start screen works on a copy of both at
+`$5800`.
 
 ## Testing
 
-`make test` builds `build/test1.prg` … `build/test25.prg`. In these the WiC64
+`make test` builds `build/test1.prg` … `build/test27.prg`. In these the WiC64
 is replaced by a fake server that plays back a script, and keys come from a
 script too (`test/scenarios.asm`): PETSCII with Telnet negotiation, ANSI BBS
 output, UTF-8 host output, address book editing, line input, a network error,
 saving and loading `telnet.cfg` (also ones saved by older versions), the
-login keys, switching to ANSI (or not, for BBSes that
+login keys, the disk directory and a disk command, switching to ANSI (or not, for BBSes that
 only probe for it), a server that stops echoing, the scrollback
 (with a 1 KB buffer, so that it fills up), 80 columns, and the finer points
 of the ANSI and UTF-8 modes. Run one in VICE and look at the screen; what the

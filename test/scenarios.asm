@@ -727,6 +727,33 @@ test_keys:
     !byte TK_END
 }
 
+!if SCENARIO = 26 {
+; The start screen's directory of the test disk, with the files the
+; disk scenarios before saved
+test_rx:
+    !byte 0
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte "$"
+    !byte TK_END
+}
+
+!if SCENARIO = 27 {
+; A disk command from the start screen: scratching a file the Makefile
+; put on the test disk; the drive's answer shows on the start screen
+test_rx:
+    !byte 0
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte "@", TK_TYPE, 7, "S", ":", "J", "U", "N", "K", KEY_RETURN
+    !byte TK_IDLE, 5
+    !byte TK_END
+}
+
 ; Scenarios without a file transfer
 !if TEST_TRANSFERS = 0 {
 test_rx_transfers: !word test_rx_end
