@@ -166,12 +166,16 @@ connection was lost.
 
 ## If the client hangs
 
-Press `RUN/STOP` + `RESTORE`. Instead of going back to BASIC, the client then
-shows a crash report on a red border: where the processor was, its
-registers, the stack, and the last bytes the server sent. Take a photo of
-it and add it to an issue, with the version and what you were doing; then
-reset the C64. If nothing reacts at all, the processor has stopped
-completely; please mention that too. `RESTORE` on its own does nothing.
+Press `RUN/STOP` + `RESTORE`. The client then shows a crash report on a red
+border: where the processor was, its registers, the stack, the last bytes
+the server sent, and the size of the WiC64 response it was receiving. Take
+a photo of it and add it to an issue, with the version, the BBS, the
+terminal mode and what you were doing.
+
+Then press a key to go back to BASIC, where `RUN` starts the client again.
+If the crash damaged too much for that, reset the C64. If nothing reacts to
+`RUN/STOP` + `RESTORE` at all, the processor has stopped completely; please
+mention that too. `RESTORE` on its own does nothing.
 
 ## Address book
 

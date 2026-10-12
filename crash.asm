@@ -17,9 +17,10 @@
 ;   WIC64  the size of the response being received or last received,
 ;          and the page of memory it was being written to
 ;
-; Only a reset gets out of it. RESTORE on its own does nothing, as
-; before. If the CPU has jammed (an illegal opcode), nothing reacts at
-; all, RUN/STOP + RESTORE neither.
+; A key then goes back to BASIC, where RUN starts the client again;
+; if the crash damaged what BASIC needs, only a reset helps. RESTORE
+; on its own does nothing, as before. If the CPU has jammed (an
+; illegal opcode), nothing reacts at all, RUN/STOP + RESTORE neither.
 ;
 ; The report (crash_report.asm) is copied to CRASH_REPORT, in the RAM
 ; under the I/O area, at start-up: only what has to see the I/O area
@@ -33,6 +34,11 @@
 .CIA1_PORT_B = $dc01
 .IOINIT = $ff84
 .CINT = $ff81
+.RESTOR = $ff8a
+.BASIC_WARM_START = $a002
+.KEY_PRESSED = $cb          ; the key held down, scanned by the KERNAL
+.NO_KEY = $40
+.KEYS_WAITING = $c6         ; in the keyboard buffer
 
 ; From the KERNAL's NMI entry, which only did SEI
 crash_nmi:
@@ -73,7 +79,17 @@ crash_ignore:
     jsr CRASH_REPORT
     lda #R6510_DEFAULT
     sta R6510
--   jmp -                   ; until the reset
+    jsr .RESTOR             ; the KERNAL's own interrupts: the keyboard
+    cli
+-   lda .KEY_PRESSED        ; RUN/STOP and RESTORE let go of first
+    cmp #.NO_KEY
+    bne -
+    lda #0
+    sta .KEYS_WAITING
+-   jsr GETIN
+    beq -
+    jsr .CINT               ; BASIC's usual screen
+    jmp (.BASIC_WARM_START) ; READY., and RUN starts the client again
 
 crash_x:      !byte 0       ; at the NMI, for crash_report.asm
 crash_y:      !byte 0

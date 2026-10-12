@@ -292,7 +292,7 @@
 .PHOTO = * - .labels
     !scr "please take a photo of this screen.", 0
 .RESET = * - .labels
-    !scr "reset the c64 to start again.", 0
+    !scr "then press a key to return to basic.", 0
 !if * - .labels > 256 {
     !error "The crash report's labels must fit in 256 bytes"
 }
