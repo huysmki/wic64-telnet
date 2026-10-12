@@ -202,7 +202,7 @@ to UTF-8 80; in UTF-8 its longer lines wrap onto two rows.
 The list is stored in `telnet.cfg` on the drive the program was loaded from
 (device 8 if unknown). It is loaded at start-up and written when you press `S`:
 first as `telnet.tmp`, which then replaces `telnet.cfg`, so a failed save
-leaves the old list on the disk. A `telnet.cfg` saved by version 3.3 or older
+leaves the old list on the disk. A `telnet.cfg` saved by version 3.2 or older
 (without names) is read as well; the next save writes the new format, which
 those versions no longer read (they start with their own list instead).
 

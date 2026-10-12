@@ -687,7 +687,7 @@ test_keys:
 }
 
 !if SCENARIO = 24 {
-; Start-up with an address book saved by version 3.3 or older (WTB1,
+; Start-up with an address book saved by version 3.2 or older (WTB1,
 ; test/wtb1.asm), shown and saved in the new format
 test_rx:
     !byte 0

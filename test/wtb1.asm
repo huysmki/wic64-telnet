@@ -1,5 +1,5 @@
 ;---------------------------------------------------------
-; An address book file as versions up to 3.3 wrote it (WTB1, 40-byte
+; An address book file as versions up to 3.2 wrote it (WTB1, 40-byte
 ; entries without names), for scenario 24: acme -f cbm makes it with
 ; the load address the KERNAL's SAVE puts in front
 ;---------------------------------------------------------

@@ -6,7 +6,7 @@
 ; them, and keeps the list in the file "telnet.cfg" on the disk drive
 ; the program was loaded from (device 8 if none). The file is read at
 ; start-up and written when the user presses S; files from before
-; there were names (version 3.3 and older) are read too.
+; there were names (version 3.2 and older) are read too.
 ;
 ; The list is kept in BOOK_STORE, in the RAM under the I/O area, as a
 ; session needs the rest of the memory; the start screen works on a
