@@ -1,26 +1,35 @@
 ;---------------------------------------------------------
 ; Address book: the start screen
 ;
-; Lists up to 16 servers, each with the terminal mode to use, lets
-; the user pick, add, edit, delete and re-type them, and keeps the
-; list in the file "telnet.cfg" on the disk drive the program was
-; loaded from (device 8 if none). The file is read at start-up and
-; written when the user presses S.
+; Lists up to 16 servers, each with a name, the terminal mode to use
+; and its host, lets the user pick, add, edit, delete and re-type
+; them, and keeps the list in the file "telnet.cfg" on the disk drive
+; the program was loaded from (device 8 if none). The file is read at
+; start-up and written when the user presses S; files from before
+; there were names (version 3.3 and older) are read too.
+;
+; The list is kept in BOOK_STORE, in the RAM under the I/O area, as a
+; session needs the rest of the memory; the start screen works on a
+; copy at BOOK_LIST.
 ;---------------------------------------------------------
 
-BOOK_ENTRY_SIZE = 40        ; host, 0-terminated, then the mode
-BOOK_ENTRY_MODE = BOOK_ENTRY_SIZE - 1
+BOOK_ENTRY_SIZE = 60        ; host, 0-terminated, the mode, then the
+BOOK_ENTRY_MODE = 39        ; name, 0-terminated (may be empty)
+BOOK_ENTRY_NAME = 40
 
-!macro book_entry .host, .mode {
+!macro book_entry .host, .mode, .name {
     .start = *
     !pet .host
     !fill BOOK_ENTRY_MODE - (* - .start), 0
     !byte .mode
+    !pet .name
+    !fill BOOK_ENTRY_SIZE - (* - .start), 0
 }
 
 !zone book {
 .MAX_ENTRIES = 16
 .HOST_MAX = 38
+.NAME_MAX = BOOK_ENTRY_SIZE - BOOK_ENTRY_NAME - 1
 !if .HOST_MAX + 1 > 39 {
     !error "book_open_host has room for 39 bytes"
 }
@@ -28,8 +37,19 @@ BOOK_ENTRY_MODE = BOOK_ENTRY_SIZE - 1
 .ENTRY_MODE = BOOK_ENTRY_MODE
 .FIRST_ROW = 2
 .MESSAGE_ROW = 18
-.HOST_COLUMNS = 27
+.LABEL_COLUMNS = 27
 .BOX_COLOR = COLOR_GREEN
+
+; The file, as it is at BOOK_LIST: magic, entry count, entries
+.MAGIC_LENGTH = 4
+.count   = BOOK_LIST + .MAGIC_LENGTH
+.entries = .count + 1
+.FILE_SIZE = .entries + .MAX_ENTRIES * .ENTRY_SIZE - BOOK_LIST
+.file_end = BOOK_LIST + .FILE_SIZE
+.PAGES = (.FILE_SIZE + $ff) >> 8
+; The file before names: entries of 40 bytes, as the first 40 now
+.OLD_ENTRY_SIZE = 40
+.OLD_FILE_SIZE = .MAGIC_LENGTH + 1 + .MAX_ENTRIES * .OLD_ENTRY_SIZE
 
 ; Loads the saved address book, if there is one.
 book_init:
@@ -56,39 +76,92 @@ book_init:
     ldy #>book_load_buffer
     jsr LOAD
     bcs .load_done
-    cpx #<(book_load_buffer + .FILE_SIZE)
-    bne .load_done
-    cpy #>(book_load_buffer + .FILE_SIZE)
-    bne .load_done
-    ldx #.MAGIC_LENGTH-1
+    stx .loaded_end
+    sty .loaded_end+1
+    ldx #.MAGIC_LENGTH-2    ; "WTB", then the version
 -   lda book_load_buffer,x
-    cmp .file,x
+    cmp .magic,x
     bne .load_done
     dex
     bpl -
-    lda book_load_buffer + (.count - .file)
+    ldx #1                  ; WTB1 or WTB2
+-   lda book_load_buffer + .MAGIC_LENGTH-1
+    cmp .versions,x
+    beq +
+    dex
+    bpl -
+    bmi .load_done          ; always
++   lda .loaded_end
+    cmp .file_ends_lo,x
+    bne .load_done
+    lda .loaded_end+1
+    cmp .file_ends_hi,x
+    bne .load_done
+    lda book_load_buffer + .MAGIC_LENGTH
     cmp #.MAX_ENTRIES+1
     bcs .load_done
-
-    ldx #0                  ; copy exactly .FILE_SIZE bytes:
--   lda book_load_buffer,x  ; two full pages...
-    sta .file,x
-    lda book_load_buffer + $100,x
-    sta .file + $100,x
-    inx
-    bne -
-    ldx #.FILE_SIZE - $200  ; ...and the rest
--   lda book_load_buffer + $1ff,x
-    sta .file + $1ff,x
-    dex
-    bne -
+    lda .entry_sizes,x
+    sta .loaded_entry_size
+    jmp .convert
 .load_done:
     rts
 
+; Puts the loaded file into the list, entry by entry, and keeps it.
+.convert:
+    ldx #0                  ; an empty list...
+    txa
+-   sta BOOK_LIST,x
+    sta BOOK_LIST + $100,x
+    sta BOOK_LIST + $200,x
+    sta BOOK_LIST + $300,x
+    inx
+    bne -
+    ldx #.MAGIC_LENGTH-1
+-   lda .magic,x
+    sta BOOK_LIST,x
+    dex
+    bpl -
+    lda book_load_buffer + .MAGIC_LENGTH
+    sta .count
+    lda #<(book_load_buffer + .MAGIC_LENGTH + 1)
+    sta zp_a                ; ...and the entries copied into it
+    lda #>(book_load_buffer + .MAGIC_LENGTH + 1)
+    sta zp_a+1
+    lda #<.entries
+    sta zp_b
+    lda #>.entries
+    sta zp_b+1
+    ldx .count
+    beq .converted
+--  ldy #0
+-   lda (zp_a),y
+    sta (zp_b),y
+    iny
+    cpy .loaded_entry_size
+    bcc -
+    lda zp_a
+    clc
+    adc .loaded_entry_size
+    sta zp_a
+    bcc +
+    inc zp_a+1
++   lda zp_b
+    clc
+    adc #.ENTRY_SIZE
+    sta zp_b
+    bcc +
+    inc zp_b+1
++   dex
+    bne --
+.converted:
+    jmp .keep
+
 ; Runs the start screen until the user picks a server.
 ; Returns C=0 with A/Y = "host:port" and X = terminal mode to connect,
-; or C=1 to go to the WiC64 portal.
+; and book_label = what to call it (its name, or else its host); or
+; C=1 to go to the WiC64 portal.
 book_menu:
+    jsr .fetch
     jsr .draw
 .key:
     jsr wait_key
@@ -150,7 +223,12 @@ book_menu:
 
 .connect_selected:
     lda .count
-    beq .key_again
+    bne +
+    jmp .key
++
+    ldx .selected
+    jsr .label_address
+    jsr .set_label
     ldx .selected
     jsr .entry_address
     ldy #.ENTRY_MODE
@@ -171,6 +249,9 @@ book_menu:
     jsr .ask_host
     bcs .key_again
     jsr .take_host
+    lda #<book_open_host
+    ldy #>book_open_host
+    jsr .set_label
     lda #<book_open_host
     ldy #>book_open_host
     ldx #TERM_PETSCII
@@ -194,7 +275,9 @@ book_menu:
     jsr .store_host
     lda #TERM_PETSCII
     sta (zp_a),y
-    jmp .changed
+    lda #0
+    tay
+    jmp .name_selected
 
 .edit:
     lda .count
@@ -207,6 +290,20 @@ book_menu:
     bcs .key_again
     ldx .selected
     jsr .store_host
+    ldx .selected
+    jsr .entry_address
+    lda zp_a
+    clc
+    adc #BOOK_ENTRY_NAME
+    ldy zp_a+1
+    bcc .name_selected
+    iny
+
+; Asks for the selected entry's name, with the default text at A/Y.
+.name_selected:
+    jsr .ask_name
+    ldx .selected
+    jsr .store_name
     jmp .changed
 
 .key_again:
@@ -221,9 +318,7 @@ book_menu:
     +plot 1, 22
     +print .delete_prompt
     ldx .selected
-    jsr .entry_address
-    lda zp_a
-    ldy zp_a+1
+    jsr .label_address
     ldx #22
     jsr print_field
     +print .yes_no
@@ -296,6 +391,7 @@ book_menu:
     jmp .changed
 
 .changed:
+    jsr .keep
     lda #<.unsaved_message
     ldy #>.unsaved_message
 .show_message:
@@ -318,35 +414,70 @@ book_menu:
 
 ;---------------------------------------------------------
 
-; X = entry index; points zp_a at the entry.
+; X = entry index; points zp_a at the entry. Changes X.
 .entry_address:
-    lda #0
-    sta zp_a+1
-    txa
-    asl                     ; * 8
-    asl
-    asl
+    lda #<.entries
     sta zp_a
-    asl                     ; * 32
-    asl
-    rol zp_a+1
-    clc
-    adc zp_a                ; * 40
-    sta zp_a
-    lda zp_a+1
-    adc #>.entries
+    lda #>.entries
     sta zp_a+1
+-   dex
+    bmi +
     lda zp_a
     clc
-    adc #<.entries
+    adc #.ENTRY_SIZE
     sta zp_a
-    bcc +
+    bcc -
     inc zp_a+1
+    bne -                   ; always
 +   rts
 
-; Asks for a host with the default text at A/Y (A = Y = 0 for none).
-; Returns C=1 if the user entered nothing.
+; X = entry index; returns A/Y = its name, or its host if it has
+; none. Leaves zp_a on the entry.
+.label_address:
+    jsr .entry_address
+    ldy #BOOK_ENTRY_NAME
+    lda (zp_a),y
+    beq +
+    lda zp_a
+    clc
+    adc #BOOK_ENTRY_NAME
+    ldy zp_a+1
+    bcc ++
+    iny
+++  rts
++   lda zp_a
+    ldy zp_a+1
+    rts
+
+; Copies the text at A/Y to book_label, cut to .NAME_MAX characters.
+.set_label:
+    sta .label_text+1
+    sty .label_text+2
+    ldx #0
+.label_text:
+-   lda $ffff,x
+    sta book_label,x
+    beq +
+    inx
+    cpx #.NAME_MAX
+    bcc -
+    lda #0
+    sta book_label,x
++   rts
+
+; Asks for a host, or a name, with the default text at A/Y (A = Y = 0
+; for none). Returns C=1 if the user entered nothing.
+.ask_name:
+    ldx #<.name_prompt
+    stx .prompt
+    ldx #>.name_prompt
+    bne .ask                ; always
 .ask_host:
+    ldx #<.host_prompt
+    stx .prompt
+    ldx #>.host_prompt
+.ask:
+    stx .prompt+1
     pha
     tya
     pha
@@ -354,7 +485,9 @@ book_menu:
     ldx #20
     jsr box_open
     +plot 1, 21
-    +print .host_prompt
+    lda .prompt
+    ldy .prompt+1
+    jsr print_str
     +plot 1, 22
     pla
     tay
@@ -369,23 +502,36 @@ book_menu:
 +   clc
     rts
 
-; Copies the input line into entry X without leading spaces, cut to
-; .HOST_MAX characters. Leaves zp_a on the entry and Y on its mode.
+; Copies the input line into entry X, without leading spaces: its host,
+; leaving zp_a on the entry and Y on its mode; or its name.
 .store_host:
     jsr .entry_address
-    jsr .skip_spaces
     ldy #0
+    lda #BOOK_ENTRY_MODE
+    jmp .store_field
+.store_name:
+    jsr .entry_address
+    ldy #BOOK_ENTRY_NAME
+    lda #BOOK_ENTRY_SIZE
+; Into the entry at zp_a from offset Y up to (not including) offset A,
+; with a 0 after the text and up to the end.
+.store_field:
+    sta .field_end
+    sec
+    sbc #1
+    sta .field_last
+    jsr .skip_spaces
 -   lda INPUT_BUFFER,x
     beq +
     sta (zp_a),y
     inx
     iny
-    cpy #.HOST_MAX
+    cpy .field_last
     bcc -
 +   lda #0
 -   sta (zp_a),y
     iny
-    cpy #.ENTRY_MODE
+    cpy .field_end
     bcc -
     rts
 
@@ -413,6 +559,39 @@ book_menu:
     inx
     bne -
 +   rts
+
+; Copies the list from BOOK_STORE to BOOK_LIST, for the start screen
+.fetch:
+    lda #>BOOK_STORE
+    ldx #>BOOK_LIST
+    bne .copy_list          ; always
+; and back again, after a change
+.keep:
+    lda #>BOOK_LIST
+    ldx #>BOOK_STORE
+.copy_list:
+    sta zp_a+1
+    stx zp_b+1
+    lda #0
+    sta zp_a
+    sta zp_b
+    ldx #.PAGES
+    tay
+    sei
+    lda #R6510_ALL_RAM      ; BOOK_STORE is under the I/O area
+    sta R6510
+-   lda (zp_a),y
+    sta (zp_b),y
+    iny
+    bne -
+    inc zp_a+1
+    inc zp_b+1
+    dex
+    bne -
+    lda #R6510_DEFAULT
+    sta R6510
+    cli
+    rts
 
 ;---------------------------------------------------------
 ; Drawing
@@ -463,10 +642,8 @@ book_menu:
     lda #" "
     jsr CHROUT
     ldx .index
-    jsr .entry_address
-    lda zp_a
-    ldy zp_a+1
-    ldx #.HOST_COLUMNS
+    jsr .label_address
+    ldx #.LABEL_COLUMNS
     jsr print_field
     lda #" "
     jsr CHROUT
@@ -515,9 +692,9 @@ book_menu:
     ldx disk_device
     ldy #0
     jsr SETLFS
-    lda #<.file
+    lda #<BOOK_LIST
     sta zp_a
-    lda #>.file
+    lda #>BOOK_LIST
     sta zp_a+1
     lda #zp_a
     ldx #<.file_end
@@ -654,26 +831,21 @@ disk_device: !byte 8         ; the drive the program was loaded from
 .index:    !byte 0
 .message:  !word .empty_text
 
-; The saved file: magic, entry count, entries
-.file:
-    !text "WTB1"
-.MAGIC_LENGTH = * - .file
-.count: !byte 9
-.entries:
-    +book_entry "8bit.hoyvision.com:6502", TERM_PETSCII
-    +book_entry "particlesbbs.dyndns.org:6400", TERM_PETSCII
-    +book_entry "cottonwoodbbs.dyndns.org:6502", TERM_PETSCII
-    +book_entry "rapidfire.hopto.org:64128", TERM_PETSCII
-    +book_entry "raveolution.hopto.org:64128", TERM_PETSCII
-    +book_entry "bbs.fozztexx.com:23", TERM_PETSCII
-    +book_entry "bbs.retrocampus.com:6510", TERM_PETSCII
-    +book_entry "vert.synchro.net:23", TERM_ANSI
-    +book_entry "telehack.com:23", TERM_UTF8_80
-    !fill (.MAX_ENTRIES - 9) * .ENTRY_SIZE, 0
-.file_end:
-.FILE_SIZE = .file_end - .file
-!if .FILE_SIZE <= $200 | .FILE_SIZE > $2ff {
-    !error "book_init copies the file in two pages plus a remainder"
+; book_init's file versions: before names, and now
+.magic:          !text "WTB2"
+.versions:       !text "1", "2"
+.entry_sizes:    !byte .OLD_ENTRY_SIZE, .ENTRY_SIZE
+.file_ends_lo:   !byte <(book_load_buffer + .OLD_FILE_SIZE), <(book_load_buffer + .FILE_SIZE)
+.file_ends_hi:   !byte >(book_load_buffer + .OLD_FILE_SIZE), >(book_load_buffer + .FILE_SIZE)
+.loaded_end:        !word 0
+.loaded_entry_size: !byte 0
+.prompt:     !word 0
+.field_end:  !byte 0
+.field_last: !byte 0
+book_label:  !fill .NAME_MAX + 1, 0
+
+!if .FILE_SIZE > $400 {
+    !error "The address book takes more than BOOK_LIST's 1 KB"
 }
 
 .filename: !pet "telnet.cfg"
@@ -705,6 +877,7 @@ disk_device: !byte 8         ; the drive the program was loaded from
     !pet PET_WHITE, "F7", PET_GREEN, " menu", 0
 .empty_message:   !pet "No servers yet. Press N to add one.", 0
 .host_prompt:     !pet "Server as host:port, e.g. bbs.org:23", 0
+.name_prompt:     !pet "Name (may be left empty)", 0
 .delete_prompt:   !pet "Delete ", PET_WHITE, 0
 .yes_no:          !pet PET_GREEN, "? (Y/N)", 0
 .full_message:    !pet "The list is full (16 servers).", 0
@@ -714,4 +887,20 @@ disk_device: !byte 8         ; the drive the program was loaded from
 .no_drive_message:   !pet "No disk drive found.", 0
 .disk_error_message: !pet "Disk error.", 0
 .empty_text:      !byte 0
+}
+
+; The address book until a file is loaded: put at BOOK_STORE (main.asm)
+!macro book_defaults {
+    !text "WTB2"
+    !byte 9
+    +book_entry "8bit.hoyvision.com:6502", TERM_PETSCII, "8-Bit Playground"
+    +book_entry "particlesbbs.dyndns.org:6400", TERM_PETSCII, "Particles! BBS"
+    +book_entry "cottonwoodbbs.dyndns.org:6502", TERM_PETSCII, "Cottonwood BBS"
+    +book_entry "rapidfire.hopto.org:64128", TERM_PETSCII, "Rapid Fire BBS"
+    +book_entry "raveolution.hopto.org:64128", TERM_PETSCII, "Raveolution BBS"
+    +book_entry "bbs.fozztexx.com:23", TERM_PETSCII, "Level 29"
+    +book_entry "bbs.retrocampus.com:6510", TERM_PETSCII, "RetroCampus BBS"
+    +book_entry "vert.synchro.net:23", TERM_ANSI, "Vertrauen"
+    +book_entry "telehack.com:23", TERM_UTF8_80, "Telehack"
+    !fill 7 * BOOK_ENTRY_SIZE, 0
 }

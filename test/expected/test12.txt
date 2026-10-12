@@ -23,7 +23,7 @@ Screen:
   |                                        |
   |                                        |
   |                                        |
-  | cottonwoodbbs.dyn UTF-8        00:00:00|
+  | Cottonwood BBS    UTF-8        00:00:00|
 
 Screen codes and colours:
    0 4d01090e2013031205050e2020202020202020202020202020202020202020202020202020202020
@@ -74,7 +74,7 @@ Screen codes and colours:
      ffffffffffffffffffffffffffffffffffffffff
   23 20202020202020202020202020202020202020202020202020202020202020202020202020202020
      ffffffffffffffffffffffffffffffffffffffff
-  24 a0838f94948f8e978f8f84828293ae84998ea0d5d4c6adb8a0a0a0a0a0a0a0a0b0b0bab0b0bab0b0
+  24 a0c38f94948f8e978f8f84a0c2c2d3a0a0a0a0d5d4c6adb8a0a0a0a0a0a0a0a0b0b0bab0b0bab0b0
      cccccccccccccccccccccccccccccccccccccccc
 
 Sent (6 bytes):

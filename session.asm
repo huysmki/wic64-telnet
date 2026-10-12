@@ -10,7 +10,7 @@
 
 !zone session {
 .AUTO_RETRIES = 3
-.HOST_MAX = 80
+.HOST_MAX = 38              ; the longest host the address book takes
 .STATUS_ROW = 24
 .STATUS_COLOR = COLOR_GREY
 .MENU_COLOR = COLOR_GREEN
@@ -284,7 +284,7 @@ session_run:
     bpl -
 
     ldx #0
--   lda .host,x
+-   lda book_label,x
     beq +
     jsr petscii_to_screen
     sta .status+1,x
