@@ -1,21 +1,24 @@
 ;---------------------------------------------------------
 ; Address book: the start screen
 ;
-; Lists up to 16 servers, each with a name, the terminal mode to use
-; and its host, lets the user pick, add, edit, delete and re-type
+; Lists up to 16 servers, each with a name, the terminal mode to use,
+; its host and a login (user name and password, which a session sends
+; on F4 and F6), lets the user pick, add, edit, delete and re-type
 ; them, and keeps the list in the file "telnet.cfg" on the disk drive
 ; the program was loaded from (device 8 if none). The file is read at
-; start-up and written when the user presses S; files from before
-; there were names (version 3.2 and older) are read too.
+; start-up and written when the user presses S; files from older
+; versions, without names (3.2 and older) or logins, are read too.
 ;
 ; The list is kept in BOOK_STORE, in the RAM under the I/O area, as a
 ; session needs the rest of the memory; the start screen works on a
 ; copy at BOOK_LIST.
 ;---------------------------------------------------------
 
-BOOK_ENTRY_SIZE = 60        ; host, 0-terminated, the mode, then the
-BOOK_ENTRY_MODE = 39        ; name, 0-terminated (may be empty)
-BOOK_ENTRY_NAME = 40
+BOOK_ENTRY_SIZE = 100       ; host, 0-terminated, the mode, then the
+BOOK_ENTRY_MODE = 39        ; name, user name and password,
+BOOK_ENTRY_NAME = 40        ; 0-terminated (each may be empty)
+BOOK_ENTRY_USER = 60
+BOOK_ENTRY_PASSWORD = 80
 
 !macro book_entry .host, .mode, .name {
     .start = *
@@ -29,7 +32,7 @@ BOOK_ENTRY_NAME = 40
 !zone book {
 .MAX_ENTRIES = 16
 .HOST_MAX = 38
-.NAME_MAX = BOOK_ENTRY_SIZE - BOOK_ENTRY_NAME - 1
+.FIELD_MAX = 19            ; name, user name, password
 !if .HOST_MAX + 1 > 39 {
     !error "book_open_host has room for 39 bytes"
 }
@@ -47,9 +50,9 @@ BOOK_ENTRY_NAME = 40
 .FILE_SIZE = .entries + .MAX_ENTRIES * .ENTRY_SIZE - BOOK_LIST
 .file_end = BOOK_LIST + .FILE_SIZE
 .PAGES = (.FILE_SIZE + $ff) >> 8
-; The file before names: entries of 40 bytes, as the first 40 now
-.OLD_ENTRY_SIZE = 40
-.OLD_FILE_SIZE = .MAGIC_LENGTH + 1 + .MAX_ENTRIES * .OLD_ENTRY_SIZE
+; Older files: entries as the first 40 bytes now (before names) or the
+; first 60 (before logins)
+.VERSIONS = 3
 
 ; Loads the saved address book, if there is one.
 book_init:
@@ -84,7 +87,7 @@ book_init:
     bne .load_done
     dex
     bpl -
-    ldx #1                  ; WTB1 or WTB2
+    ldx #.VERSIONS-1        ; WTB1, WTB2 or WTB3
 -   lda book_load_buffer + .MAGIC_LENGTH-1
     cmp .versions,x
     beq +
@@ -108,13 +111,18 @@ book_init:
 
 ; Puts the loaded file into the list, entry by entry, and keeps it.
 .convert:
-    ldx #0                  ; an empty list...
-    txa
--   sta BOOK_LIST,x
-    sta BOOK_LIST + $100,x
-    sta BOOK_LIST + $200,x
-    sta BOOK_LIST + $300,x
-    inx
+    lda #<BOOK_LIST         ; an empty list...
+    sta zp_a
+    lda #>BOOK_LIST
+    sta zp_a+1
+    ldx #.PAGES
+    lda #0
+    tay
+-   sta (zp_a),y
+    iny
+    bne -
+    inc zp_a+1
+    dex
     bne -
     ldx #.MAGIC_LENGTH-1
 -   lda .magic,x
@@ -228,9 +236,16 @@ book_menu:
 +
     ldx .selected
     jsr .label_address
-    jsr .set_label
+    ldx #book_label - book_session
+    jsr .take_field
     ldx .selected
     jsr .entry_address
+    lda #BOOK_ENTRY_USER
+    ldx #book_user - book_session
+    jsr .take_entry_field
+    lda #BOOK_ENTRY_PASSWORD
+    ldx #book_password - book_session
+    jsr .take_entry_field
     ldy #.ENTRY_MODE
     lda (zp_a),y
     tax
@@ -243,15 +258,22 @@ book_menu:
     sec
     rts
 
+.no_input:
+    jmp .key
+
 .open:
     lda #0
     tay
     jsr .ask_host
-    bcs .key_again
+    bcs .no_input
     jsr .take_host
     lda #<book_open_host
     ldy #>book_open_host
-    jsr .set_label
+    ldx #book_label - book_session
+    jsr .take_field
+    lda #0                  ; no login
+    sta book_user
+    sta book_password
     lda #<book_open_host
     ldy #>book_open_host
     ldx #TERM_PETSCII
@@ -268,16 +290,21 @@ book_menu:
 +   lda #0
     tay
     jsr .ask_host
-    bcs .key_again
+    bcs .no_input
     ldx .count
     stx .selected
     inc .count
+    jsr .entry_address      ; a deleted entry may have left its details
+    lda #0
+    ldy #.ENTRY_SIZE-1
+-   sta (zp_a),y
+    dey
+    bpl -
+    ldx .selected
     jsr .store_host
     lda #TERM_PETSCII
     sta (zp_a),y
-    lda #0
-    tay
-    jmp .name_selected
+    jmp .ask_details
 
 .edit:
     lda .count
@@ -290,21 +317,49 @@ book_menu:
     bcs .key_again
     ldx .selected
     jsr .store_host
+
+; Asks for the selected entry's name, user name and password, with
+; what it has as the defaults.
+.ask_details:
+    lda #0
+    sta .field
+-   ldx .field
+    lda .prompts_lo,x
+    sta .prompt
+    lda .prompts_hi,x
+    sta .prompt+1
+    jsr .field_address
+    jsr .ask
+    jsr .field_address
+    ldx .field
+    lda .field_offsets,x
+    tay
+    clc
+    adc #.FIELD_MAX + 1
+    jsr .store_field
+    inc .field
+    lda .field
+    cmp #.DETAILS
+    bcc -
+    jmp .changed
+
+; Returns A/Y = the selected entry's field .field, zp_a on the entry.
+.field_address:
     ldx .selected
     jsr .entry_address
+    ldx .field
     lda zp_a
     clc
-    adc #BOOK_ENTRY_NAME
+    adc .field_offsets,x
     ldy zp_a+1
-    bcc .name_selected
+    bcc +
     iny
++   rts
 
-; Asks for the selected entry's name, with the default text at A/Y.
-.name_selected:
-    jsr .ask_name
-    ldx .selected
-    jsr .store_name
-    jmp .changed
+.DETAILS = 3
+.field_offsets: !byte BOOK_ENTRY_NAME, BOOK_ENTRY_USER, BOOK_ENTRY_PASSWORD
+.prompts_lo:    !byte <.name_prompt, <.user_prompt, <.password_prompt
+.prompts_hi:    !byte >.name_prompt, >.user_prompt, >.password_prompt
 
 .key_again:
     jmp .key
@@ -449,35 +504,42 @@ book_menu:
     ldy zp_a+1
     rts
 
-; Copies the text at A/Y to book_label, cut to .NAME_MAX characters.
-.set_label:
-    sta .label_text+1
-    sty .label_text+2
-    ldx #0
-.label_text:
--   lda $ffff,x
-    sta book_label,x
+; Copies the field at offset A of the entry at zp_a to book_session + X.
+.take_entry_field:
+    clc
+    adc zp_a
+    pha
+    lda zp_a+1
+    adc #0
+    tay
+    pla
+; Copies the text at A/Y to book_session + X, cut to .FIELD_MAX
+; characters.
+.take_field:
+    sta .field_text+1
+    sty .field_text+2
+    ldy #0
+.field_text:
+-   lda $ffff,y
+    sta book_session,x
     beq +
     inx
-    cpx #.NAME_MAX
+    iny
+    cpy #.FIELD_MAX
     bcc -
     lda #0
-    sta book_label,x
+    sta book_session,x
 +   rts
 
-; Asks for a host, or a name, with the default text at A/Y (A = Y = 0
-; for none). Returns C=1 if the user entered nothing.
-.ask_name:
-    ldx #<.name_prompt
-    stx .prompt
-    ldx #>.name_prompt
-    bne .ask                ; always
+; Asks for a host, or with .prompt for anything else, with the default
+; text at A/Y (A = Y = 0 for none). Returns C=1 if the user entered
+; nothing.
 .ask_host:
     ldx #<.host_prompt
     stx .prompt
     ldx #>.host_prompt
-.ask:
     stx .prompt+1
+.ask:
     pha
     tya
     pha
@@ -502,18 +564,13 @@ book_menu:
 +   clc
     rts
 
-; Copies the input line into entry X, without leading spaces: its host,
-; leaving zp_a on the entry and Y on its mode; or its name.
+; Copies the input line into entry X, without leading spaces, as its
+; host. Leaves zp_a on the entry and Y on its mode.
 .store_host:
     jsr .entry_address
     ldy #0
     lda #BOOK_ENTRY_MODE
-    jmp .store_field
-.store_name:
-    jsr .entry_address
-    ldy #BOOK_ENTRY_NAME
-    lda #BOOK_ENTRY_SIZE
-; Into the entry at zp_a from offset Y up to (not including) offset A,
+; Copies the input line, without leading spaces, into the entry at zp_a from offset Y up to (not including) offset A,
 ; with a 0 after the text and up to the end.
 .store_field:
     sta .field_end
@@ -831,21 +888,31 @@ disk_device: !byte 8         ; the drive the program was loaded from
 .index:    !byte 0
 .message:  !word .empty_text
 
-; book_init's file versions: before names, and now
-.magic:          !text "WTB2"
-.versions:       !text "1", "2"
-.entry_sizes:    !byte .OLD_ENTRY_SIZE, .ENTRY_SIZE
-.file_ends_lo:   !byte <(book_load_buffer + .OLD_FILE_SIZE), <(book_load_buffer + .FILE_SIZE)
-.file_ends_hi:   !byte >(book_load_buffer + .OLD_FILE_SIZE), >(book_load_buffer + .FILE_SIZE)
+; book_init's file versions: before names, before logins, and now
+.magic:          !text "WTB3"
+.versions:       !text "1", "2", "3"
+.entry_sizes:    !byte 40, 60, .ENTRY_SIZE
+.file_ends_lo:   !byte <(book_load_buffer + 5 + 16 * 40), <(book_load_buffer + 5 + 16 * 60)
+                 !byte <(book_load_buffer + .FILE_SIZE)
+.file_ends_hi:   !byte >(book_load_buffer + 5 + 16 * 40), >(book_load_buffer + 5 + 16 * 60)
+                 !byte >(book_load_buffer + .FILE_SIZE)
 .loaded_end:        !word 0
 .loaded_entry_size: !byte 0
 .prompt:     !word 0
+.field:      !byte 0
 .field_end:  !byte 0
 .field_last: !byte 0
-book_label:  !fill .NAME_MAX + 1, 0
+; What the session gets of the server it connects to
+book_session:
+book_label:    !fill .FIELD_MAX + 1, 0  ; its name, or else its host
+book_user:     !fill .FIELD_MAX + 1, 0  ; its login (empty: none)
+book_password: !fill .FIELD_MAX + 1, 0
 
-!if .FILE_SIZE > $400 {
-    !error "The address book takes more than BOOK_LIST's 1 KB"
+!if .FILE_SIZE > $800 {
+    !error "The address book takes more than BOOK_LIST's 2 KB"
+}
+!if .FILE_SIZE > book_load_buffer_size {
+    !error "The address book file does not fit book_load_buffer"
 }
 
 .filename: !pet "telnet.cfg"
@@ -873,11 +940,14 @@ book_label:  !fill .NAME_MAX + 1, 0
     !pet PET_WHITE, "_", PET_GREEN, " WiC64 portal", 13, 13
     !pet "Online: ", PET_WHITE, "F1", PET_GREEN, " hang up  "
     !pet PET_WHITE, "F3", PET_GREEN, " type a line", 13
-    !pet "        ", PET_WHITE, "F5", PET_GREEN, " echo     "
-    !pet PET_WHITE, "F7", PET_GREEN, " menu", 0
+    !pet "        ", PET_WHITE, "F5", PET_GREEN, " echo  "
+    !pet PET_WHITE, "F7", PET_GREEN, " menu  "
+    !pet PET_WHITE, "F4", PET_GREEN, "/", PET_WHITE, "F6", PET_GREEN, " login", 0
 .empty_message:   !pet "No servers yet. Press N to add one.", 0
 .host_prompt:     !pet "Server as host:port, e.g. bbs.org:23", 0
 .name_prompt:     !pet "Name (may be left empty)", 0
+.user_prompt:     !pet "User name, sent on F4 (may be empty)", 0
+.password_prompt: !pet "Password, sent on F6 (may be empty)", 0
 .delete_prompt:   !pet "Delete ", PET_WHITE, 0
 .yes_no:          !pet PET_GREEN, "? (Y/N)", 0
 .full_message:    !pet "The list is full (16 servers).", 0
@@ -891,7 +961,7 @@ book_label:  !fill .NAME_MAX + 1, 0
 
 ; The address book until a file is loaded: put at BOOK_STORE (main.asm)
 !macro book_defaults {
-    !text "WTB2"
+    !text "WTB3"
     !byte 9
     +book_entry "8bit.hoyvision.com:6502", TERM_PETSCII, "8-Bit Playground"
     +book_entry "particlesbbs.dyndns.org:6400", TERM_PETSCII, "Particles! BBS"

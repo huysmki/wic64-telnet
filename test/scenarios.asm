@@ -122,10 +122,12 @@ test_rx_end:
 !align 255, 0
 test_keys:
     !text "N", TK_TYPE, 7, "N", "E", "W", ":", "2", "3", KEY_RETURN
-    !text TK_TYPE, 5, "T", "E", "S", "T", KEY_RETURN        ; its name
+    !text TK_TYPE, 5, "T", "E", "S", "T", KEY_RETURN        ; its name,
+    !text TK_TYPE, 1, KEY_RETURN, TK_TYPE, 1, KEY_RETURN    ; no login
     !text "T", "T"                  ; new entry -> UTF-8
     !text KEY_HOME, "E", TK_TYPE, 3, "X", "Y", KEY_RETURN   ; edit first entry
-    !text TK_TYPE, 1, KEY_RETURN    ; keeping its name
+    !text TK_TYPE, 1, KEY_RETURN    ; keeping its name and login
+    !text TK_TYPE, 1, KEY_RETURN, TK_TYPE, 1, KEY_RETURN
     !text KEY_DOWN, "D", "Y"        ; delete the second
     !text KEY_DOWN, "D", "N"        ; keep the third
     !byte TK_END
@@ -172,7 +174,8 @@ test_rx_end:
 !align 255, 0
 test_keys:
     !byte "N", TK_TYPE, 8, "S", "A", "V", "E", "D", ":", "1", KEY_RETURN
-    !byte TK_TYPE, 1, KEY_RETURN    ; no name
+    !byte TK_TYPE, 1, KEY_RETURN    ; no name, no login
+    !byte TK_TYPE, 1, KEY_RETURN, TK_TYPE, 1, KEY_RETURN
     !byte "T"
     !byte "S"
     !byte TK_END
@@ -697,7 +700,30 @@ test_rx_end:
 test_keys:
     !byte KEY_DOWN, "E", TK_TYPE, 1, KEY_RETURN ; the second keeps its
     !byte TK_TYPE, 4, "A", "N", "S", KEY_RETURN ; host, gets a name
+    !byte TK_TYPE, 1, KEY_RETURN, TK_TYPE, 1, KEY_RETURN
     !byte "S"
+    !byte TK_END
+}
+
+!if SCENARIO = 25 {
+; Start-up with an address book saved before logins (WTB2,
+; test/wtb2.asm); the first entry gets a login, the list is saved, and
+; F4 and F6 send the user name and the password
+test_rx:
+    !pet "Name: "
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte "E", TK_TYPE, 1, KEY_RETURN           ; host and name as they
+    !byte TK_TYPE, 1, KEY_RETURN                ; are, then the login
+    !byte TK_TYPE, 4, "K", "I", "M", KEY_RETURN
+    !byte TK_TYPE, 7, "S", "E", "C", "R", "E", "T", KEY_RETURN
+    !byte "S"
+    !byte KEY_RETURN                            ; connect
+    !byte TK_WAIT_RX
+    !byte KEY_F4, KEY_F6
+    !byte TK_IDLE, 5
     !byte TK_END
 }
 

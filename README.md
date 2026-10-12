@@ -65,15 +65,18 @@ exits) and application cursor keys when they ask for them.
 Start screen: `CRSR` select, `HOME` first entry, `RETURN` or `1`–`9` connect,
 `N` new, `E` edit, `D` delete, `T` mode, `S` save to disk, `O` connect to a
 host that isn't in the list (starts in PETSCII mode), `←` WiC64 portal. `N`
-and `E` ask for the host and then for a name (which may stay empty). When
+and `E` ask for the host and then for a name, a user name and a password
+(each may stay empty). When
 editing, the C64 screen editor overwrites text; use `INST` to insert.
 
 Online: `F1` hang up, `F3` type a whole line (up to 80 characters),
-`F5` local echo on/off, `F7` session menu (mode, echo, scrollback, file
-download, Telnet break / interrupt / are-you-there, hang up), `SHIFT F7`
-scrollback.
-`RUN/STOP`+`RESTORE` leaves the program for BASIC in any mode, without
-hanging up; `RUN` starts it again.
+`F4` send the user name and `F6` the password (each followed by `RETURN`, as
+if typed), `F5` local echo on/off, `F7` session menu (mode, echo,
+scrollback, file download, Telnet break / interrupt / are-you-there, hang
+up), `SHIFT F7` scrollback.
+`RUN/STOP`+`RESTORE` shows the crash report (see
+[If the client hangs](#if-the-client-hangs)); a key then goes to BASIC, where
+`RUN` starts the client again.
 
 ## File downloads
 
@@ -181,7 +184,11 @@ mention that too. `RESTORE` on its own does nothing.
 ## Address book
 
 Each server has a name, shown in the list and on the status line; a server
-without a name shows its host instead. It comes with nine servers that were
+without a name shows its host instead. It can also have a login: a user name
+and a password, which `F4` and `F6` send during the session, so that you
+don't have to type them at every login. The password is never shown in the
+list, but it is stored unencrypted in `telnet.cfg`: leave it empty if others
+can read your disk. It comes with nine servers that were
 online when this version was made:
 
 | # | Name | Server | Mode |
@@ -202,9 +209,10 @@ to UTF-8 80; in UTF-8 its longer lines wrap onto two rows.
 The list is stored in `telnet.cfg` on the drive the program was loaded from
 (device 8 if unknown). It is loaded at start-up and written when you press `S`:
 first as `telnet.tmp`, which then replaces `telnet.cfg`, so a failed save
-leaves the old list on the disk. A `telnet.cfg` saved by version 3.2 or older
-(without names) is read as well; the next save writes the new format, which
-those versions no longer read (they start with their own list instead).
+leaves the old list on the disk. A `telnet.cfg` saved by an older version
+(without names or logins) is read as well; the next save writes the new
+format, which older versions no longer read (they start with their own list
+instead).
 
 ## Credits and licence
 
@@ -260,11 +268,12 @@ works on a copy at `$5800`.
 
 ## Testing
 
-`make test` builds `build/test1.prg` … `build/test24.prg`. In these the WiC64
+`make test` builds `build/test1.prg` … `build/test25.prg`. In these the WiC64
 is replaced by a fake server that plays back a script, and keys come from a
 script too (`test/scenarios.asm`): PETSCII with Telnet negotiation, ANSI BBS
 output, UTF-8 host output, address book editing, line input, a network error,
-saving and loading `telnet.cfg` (also one saved by an older version), switching to ANSI (or not, for BBSes that
+saving and loading `telnet.cfg` (also ones saved by older versions), the
+login keys, switching to ANSI (or not, for BBSes that
 only probe for it), a server that stops echoing, the scrollback
 (with a 1 KB buffer, so that it fills up), 80 columns, and the finer points
 of the ANSI and UTF-8 modes. Run one in VICE and look at the screen; what the
