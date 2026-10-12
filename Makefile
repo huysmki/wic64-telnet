@@ -3,8 +3,9 @@ ACME ?= acme
 VICE_BIN = $(firstword $(wildcard /Applications/vice-*/bin))
 VICE ?= $(if $(VICE_BIN),$(VICE_BIN)/x64sc,x64sc)
 C1541 ?= $(if $(VICE_BIN),$(VICE_BIN)/c1541,c1541)
-SOURCES = main.asm defs.asm ui.asm net.asm telnet.asm term.asm ansi.asm scrollback.asm screen80.asm \
-          charmaps.asm session.asm book.asm xfer.asm wic64.h wic64.asm
+SOURCES = main.asm defs.asm ui.asm net.asm receive.asm telnet.asm term.asm ansi.asm scrollback.asm screen80.asm \
+          charmaps.asm session.asm book.asm xfer.asm crash.asm crash_report.asm \
+          wic64.h wic64.asm
 SCENARIOS = 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
 DISK_SCENARIOS = 7 8 20 21 22 23
 # Files the download scenarios save on the test disk: name:expected .bin
@@ -20,6 +21,21 @@ test: $(SCENARIOS:%=build/test%.prg)
 build/test%.prg: $(SOURCES) test/fake_net.asm test/scenarios.asm
 	@mkdir -p build
 	$(ACME) -f cbm -DTEST=1 -DSCENARIO=$* -l build/test$*.lbl -o $@ main.asm
+
+# Benchmarks (see test/bench.asm): cycles per byte the server sends
+BENCHES = 1 2 3 4
+
+bench: $(BENCHES:%=build/bench%.prg)
+	@for n in $(BENCHES); do \
+	    VICE="$(VICE)" python3 tools/run_test.py build/bench$$n.prg build/bench$$n.lbl \
+	        build/bench$$n.txt || exit 1; \
+	done
+
+build/bench%.prg: $(SOURCES) test/fake_net.asm test/bench.asm build/bench_frames.bin
+	$(ACME) -f cbm -DTEST=1 -DBENCH=$* -l build/bench$*.lbl -o $@ main.asm
+
+build/bench_frames.bin: tools/bench_data.py
+	python3 tools/bench_data.py build
 
 # Runs every test build in VICE and compares the screen and what was
 # sent with test/expected/, and the downloaded files with their .bin.
@@ -49,4 +65,4 @@ expected:
 clean:
 	rm -rf build
 
-.PHONY: test check expected clean
+.PHONY: test bench check expected clean

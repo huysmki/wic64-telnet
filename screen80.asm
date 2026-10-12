@@ -470,6 +470,8 @@ s80_copy_row:
     lda .matrix_hi,y
     sta .to_matrix+2
 
+    lda R6510               ; as it was: the BASIC ROM may be off too
+    pha
     lda #R6510_NO_KERNAL
     sta R6510
     ldx #0
@@ -481,7 +483,7 @@ s80_copy_row:
     inx
     cpx #64
     bne .copy_runs
-    lda #R6510_DEFAULT
+    pla
     sta R6510
 
     ldx #39
@@ -719,6 +721,7 @@ s80_copy_row:
     pha
     +kernal_on .kernal_off
     jmp ($0318)
+s80_nmi_return:             ; for the crash report
 .kernal_off:
     pla
     sta R6510

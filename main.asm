@@ -1,12 +1,14 @@
 ;---------------------------------------------------------
-; WiC64 Telnet Client 3.2
+; WiC64 Telnet Client 3.3
 ;
 ; Build:       acme -f cbm -o telnet.prg main.asm
 ; Test build:  acme -f cbm -DTEST=1 -DSCENARIO=<n> -o test.prg main.asm
 ;              (fake network and scripted keys, see test/)
+; Benchmark:   make bench (see test/bench.asm)
 ;
 ; Modules:
 ;   net.asm       TCP connection through the WiC64
+;   receive.asm   hands what a read brought on, a byte at a time
 ;   telnet.asm    Telnet protocol and option negotiation
 ;   term.asm      terminal modes, keyboard, cursor
 ;   ansi.asm      ANSI/VT100 screen driver
@@ -16,6 +18,7 @@
 ;   scrollback.asm rows that left the screen, and a viewer for them
 ;   book.asm      address book start screen, saved to disk
 ;   ui.asm        printing, popup boxes, line input, clock
+;   crash.asm     RUN/STOP + RESTORE: where the client was
 ;---------------------------------------------------------
 
 !ifndef TEST {
@@ -42,12 +45,14 @@ wic64_optimize_for_size = 1 ; one handshake routine instead of a copy in
 } else {
     !src "net.asm"
 }
+!src "receive.asm"
 !src "telnet.asm"
 !src "term.asm"
 !src "ansi.asm"
 !src "charmaps.asm"
 !src "screen80.asm"
 !src "session.asm"
+!src "crash.asm"
 
 start:
     jsr move_high_part
@@ -94,6 +99,7 @@ move_high_part:
     lda .high_part_moved
     bne .moved
     inc .high_part_moved
+    jsr crash_setup         ; first, as the high part moves over it
     lda #<(high_part_load + (HIGH_PAGES - 1) * $100)
     sta zp_a
     lda #>(high_part_load + (HIGH_PAGES - 1) * $100)
@@ -138,10 +144,27 @@ HIGH_PAGES = (high_part_end - high_part_load + $ff) >> 8
     !error "Program overlaps the memory at PROGRAM_LIMIT"
 }
 
+; The crash report: copied to the RAM under the I/O area at start-up
+crash_report_load:
+!pseudopc CRASH_REPORT {
+!src "crash_report.asm"
+}
+crash_report_end:
+crash_setup:
+    +crash_setup
+CRASH_REPORT_PAGES = (crash_report_end - crash_report_load + $ff) >> 8
+!if CRASH_REPORT + CRASH_REPORT_PAGES * $100 > $e000 {
+    !error "The crash report does not fit under the I/O area"
+}
+
 !if TEST {
 * = TEST_DATA
-!src "test/scenarios.asm"
+  !ifdef BENCH {
+    !src "test/bench.asm"
+  } else {
+    !src "test/scenarios.asm"
     !if * > NET_RX_BUFFER {
         !error "The test data runs into NET_RX_BUFFER"
     }
+  }
 }

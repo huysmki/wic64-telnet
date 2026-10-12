@@ -47,6 +47,16 @@ NET_IDLE_JIFFIES = 8        ; at most 8/60 s between reads that bring
 
 net_status: !byte 0
 
+; Like +wic64_execute, with the most bytes the response may have, in
+; pages: the size of the buffer it goes to.
+!macro net_execute .request, .response, .pages, .timeout {
+    +wic64_set_request .request
+    +wic64_set_response .response
+    lda #.timeout
+    ldx #.pages
+    jsr net_execute
+}
+
 ; Returns C=1 if no WiC64 answers, otherwise Z=0 if its firmware is
 ; too old (before 2.0.0) and Z=1 if it is ready.
 net_init:
@@ -73,15 +83,15 @@ net_open:
     lda #0
     sta .tx_length
     sta .idle_wait
-    sta .rx_left
-    sta .rx_left+1
+    tay
+    jsr receive_start       ; nothing left of a previous connection
     lda #WIC64_TCP_OPEN
     sta .request_command
-    +wic64_execute .request, net_response, NET_OPEN_TIMEOUT
+    +net_execute .request, net_response, 1, NET_OPEN_TIMEOUT
     jmp .result
 
 net_close:
-    +wic64_execute .close_request, net_response, NET_REQUEST_TIMEOUT
+    +net_execute .close_request, net_response, 1, NET_REQUEST_TIMEOUT
     jmp .result
 
 ; Queues A for the server. Preserves X and Y. Bytes beyond the queue
@@ -100,10 +110,9 @@ net_send:
 ; telnet_receive; or, while the connection is idle, does nothing until
 ; it is time to read again.
 net_poll:
-    lda .rx_left            ; left over from a file transfer
-    ora .rx_left+1
+    jsr receive_pending     ; left over from a file transfer
     beq +
-    jmp .deliver_rest
+    jmp receive_deliver
 +   lda .tx_length
     bne .write
     lda JIFFY_LO
@@ -121,7 +130,7 @@ net_poll:
     sta .idle_wait          ; an answer is likely to follow soon
 
 .read:
-    +wic64_execute .read_request, NET_RX_BUFFER, NET_POLL_TIMEOUT
+    +net_execute .read_request, NET_RX_BUFFER, NET_RX_PAGES, NET_POLL_TIMEOUT
     php
     pha
     lda JIFFY_LO
@@ -131,11 +140,12 @@ net_poll:
     jsr .result
     bcs .poll_done
     lda wic64_response_size
-    ora wic64_response_size+1
+    ldy wic64_response_size+1
+    jsr receive_start
     beq .nothing_read
     lda #0                  ; data: read again straight away
     sta .idle_wait
-    jmp .deliver
+    jmp receive_deliver
 .nothing_read:
     lda .idle_wait          ; wait 1, 2, 4, ... jiffies
     asl
@@ -149,19 +159,6 @@ net_poll:
 .poll_done:
     rts
 
-; Hands the wic64_response_size bytes in NET_RX_BUFFER to
-; telnet_receive. Returns C=0.
-.deliver:
-    jsr .rewind
-.deliver_rest:
--   jsr .take_byte
-    jsr telnet_receive
-    lda .rx_left
-    ora .rx_left+1
-    bne -
-    clc
-    rts
-
 ; Sends the bytes queued with net_send now. Returns C=1 on failure.
 net_flush:
     lda .tx_length
@@ -171,62 +168,83 @@ net_flush:
 +   sta .request_size
     lda #WIC64_TCP_WRITE
     sta .request_command
-    +wic64_execute .request, net_response, NET_REQUEST_TIMEOUT
+    +net_execute .request, net_response, 1, NET_REQUEST_TIMEOUT
     jsr .result
-    bcs +
+    bcc .sent
+    ldx .oversized          ; the WiC64 did answer, so the bytes went
+    beq +                   ; out: sent again they would come twice
+.sent:
     lda #0
     sta .tx_length
+    clc
 +   rts
 
 ; Returns C=0 and the server's next byte in A, as it came (Telnet
 ; commands included), reading from the WiC64 when the buffer is empty;
 ; C=1 if nothing has come in, or the WiC64 did not answer.
 net_read_byte:
-    lda .rx_left
-    ora .rx_left+1
-    bne .take_byte
-    +wic64_execute .read_request, NET_RX_BUFFER, NET_POLL_TIMEOUT
+    jsr receive_pending
+    beq +
+    jmp receive_byte
++   +net_execute .read_request, NET_RX_BUFFER, NET_RX_PAGES, NET_POLL_TIMEOUT
     jsr .result
     bcs +
     lda wic64_response_size
-    ora wic64_response_size+1
+    ldy wic64_response_size+1
+    jsr receive_start
     sec
     beq +
-    jsr .rewind
-    jmp .take_byte
+    jmp receive_byte
 +   rts
 
-; Points at the start of what the last read brought.
-.rewind:
-    lda #<NET_RX_BUFFER
-    sta .rx+1
-    lda #>NET_RX_BUFFER
-    sta .rx+2
-    lda wic64_response_size
-    sta .rx_left
+; Carries out the request set with +wic64_set_request, the response
+; going to +wic64_set_response; A = timeout, X = the most pages the
+; response may fill. Returns like wic64_execute: C=1 on a timeout,
+; otherwise A = the WiC64 status.
+;
+; Now and then a handshake gets lost while the response's size is read,
+; and the size comes out as anything up to 64 KB. Received whole, that
+; would run past the buffer, over the client and the I/O area (the
+; VIC, and the user port's direction, which then fights the WiC64).
+; A response that does not fit is received without being stored,
+; until the WiC64 stops sending, and counts as a timeout, so that the
+; session tries again; .oversized tells it apart from one.
+net_execute:
+    stx .response_pages
+    ldx #0
+    stx .oversized
+    ldx wic64_timeout
+    stx wic64_configured_timeout
+    sta wic64_timeout
+    +wic64_initialize
+    +wic64_send_header
+    bcs .executed
+    +wic64_send
+    bcs .executed
+    +wic64_receive_header
+    bcs .executed
     lda wic64_response_size+1
-    sta .rx_left+1
+    cmp .response_pages
+    bcc .fits
+    bne .too_big
+    lda wic64_response_size
+    bne .too_big
+.fits:
+    +wic64_receive
+    bcs .executed
+    +wic64_finalize
+.executed:
     rts
 
-; Returns the next byte from NET_RX_BUFFER in A, C=0. Preserves X
-; and Y.
-.take_byte:
-    lda #R6510_NO_BASIC     ; the buffer is under the BASIC ROM
-    sta R6510
-.rx:
-    lda $ffff
-    pha
-    lda #R6510_DEFAULT
-    sta R6510
-    inc .rx+1
-    bne +
-    inc .rx+2
-+   lda .rx_left
-    bne +
-    dec .rx_left+1
-+   dec .rx_left
-    pla
-    clc
+.too_big:
+    inc .oversized
+    lda #0                  ; wic64_finalize puts the store back
+    sta wic64_auto_discard_response
+    +wic64_set_store_instruction wic64_nop_instruction
+    +wic64_receive          ; usually ends with a timeout, as the size
+    bcs +                   ; was wrong, which has finalised already
+    +wic64_finalize
++   sec
     rts
 
 ; Turns the outcome of a WiC64 request (C = timeout, A = status) into
@@ -247,7 +265,7 @@ net_error_text:
     lda net_status
     cmp #NET_TIMEOUT
     beq .timeout_text
-    +wic64_execute .status_request, net_response, NET_REQUEST_TIMEOUT
+    +net_execute .status_request, net_response, 1, NET_REQUEST_TIMEOUT
     bcs .timeout_text
     ldy wic64_response_size
     lda wic64_response_size+1
@@ -266,7 +284,8 @@ net_error_text:
 .timeout_message: !pet "WiC64 did not answer in time", 0
 
 .y: !byte 0
-.rx_left:    !word 0         ; bytes still to hand on
+.response_pages: !byte 0
+.oversized:      !byte 0    ; 1: the last response did not fit
 .last_read: !byte 0         ; JIFFY_LO at the last read
 .idle_wait: !byte 0         ; jiffies to wait after it
 

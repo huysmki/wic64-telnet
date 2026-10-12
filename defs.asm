@@ -30,6 +30,7 @@ R6510 = $01
 R6510_DEFAULT     = $37    ; BASIC, KERNAL and I/O
 R6510_NO_BASIC    = $36    ; RAM at $a000-$bfff
 R6510_NO_KERNAL   = $35    ; RAM at $a000-$bfff and $e000-$ffff
+R6510_ALL_RAM     = $34    ; RAM everywhere, no I/O either
 
 ; KERNAL variables
 JIFFY_MID     = $a1
@@ -112,6 +113,10 @@ COLOR_LIGHT_GREY  = $0f
 ; them across calls into other modules
 zp_a = $fb
 zp_b = $fd
+; The row the ANSI driver writes characters to (ansi.asm's .put): the
+; KERNAL's RS-232 buffer pointers, unused
+zp_put_a = $f7
+zp_put_b = $f9
 
 ; Memory map
 ;   $02a7-$02f6  the scrollback viewer: a row's colours
@@ -136,6 +141,8 @@ zp_b = $fd
 ;                is used for line input)
 ;   $c000-$cbff  BSS: uninitialised buffers
 ;   $cc00-$cfe7  80 columns: colours of the bitmap (VIC bank 3)
+;   $d000-$dfff  CRASH_REPORT: the crash report (crash.asm), in the RAM
+;                under the I/O area
 ;   $e000-$ff3f  80 columns: the bitmap, in the RAM under the KERNAL ROM
 ;   $fffa-$ffff  80 columns: interrupt vectors for while the KERNAL ROM
 ;                is switched off
@@ -167,7 +174,8 @@ SCROLLBACK_80    = $8400
     SCROLLBACK_80_END = $a000
 }
 NET_RX_BUFFER    = $a000          ; 8 KB: the most the WiC64 firmware
-                                  ; reads at a time
+NET_RX_PAGES     = $20            ; reads at a time
+CRASH_REPORT     = $d000
 BSS              = $c000
 box_save_buffer  = BSS            ; 8 rows * (40 screen + 40 color)
 box_save_links   = BSS + $0280    ; 25 bytes

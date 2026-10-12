@@ -81,17 +81,13 @@ telnet_reset:
     bpl -
     rts
 
-; Takes the next byte from the server in A. Preserves X and Y.
+; Takes the next byte from the server in A.
 telnet_receive:
-    stx .x
-    sty .y
     ldx .state
     bne .command
-
     cmp #TN_IAC
     beq .enter_iac
-    jsr .to_sink
-    jmp .exit
+    jmp (telnet_sink)
 
 .enter_iac:
     lda #.IAC
@@ -105,8 +101,7 @@ telnet_receive:
     stx .state
     cmp #TN_IAC
     bne +
-    jsr .to_sink            ; IAC IAC is a literal $ff
-    jmp .exit
+    jmp (telnet_sink)       ; IAC IAC is a literal $ff
 +   cmp #TN_SB
     bne +
     ldx #.SUB
@@ -162,12 +157,7 @@ telnet_receive:
     inc .sub_length
 
 .exit:
-    ldx .x
-    ldy .y
     rts
-
-.to_sink:
-    jmp (telnet_sink)
 
 ; A = option, .verb = WILL/WONT/DO/DONT
 .negotiate:
@@ -343,6 +333,4 @@ telnet_send_newline:
 .option:     !byte 0
 .sub_length: !byte 0
 .sub_buffer: !fill .SUB_MAX, 0
-.x:          !byte 0
-.y:          !byte 0
 }
