@@ -2,8 +2,8 @@
 ; Session: one connection from connect to hang-up
 ;
 ; Runs the loop that moves data between the network and the terminal,
-; handles the session keys (F1 hang up, F3 line input, F5 local echo,
-; F7 session menu, SHIFT F7 scrollback), keeps the online clock and status line up to date
+; handles the session keys (F1 hang up, F3 line input, F4/F6 the user
+; name/password, F5 local echo, F7 session menu, SHIFT F7 scrollback), keeps the online clock and status line up to date
 ; and deals with network failures: timeouts are retried quietly a few
 ; times, anything else asks the user whether to retry or give up.
 ;---------------------------------------------------------
@@ -129,6 +129,18 @@ session_run:
     bne +
     jsr .toggle_echo
     jmp .handle_keys
++   cmp #KEY_F4
+    bne +
+    lda #<book_user
+    ldy #>book_user
+    jsr .type_login
+    jmp .handle_keys
++   cmp #KEY_F6
+    bne +
+    lda #<book_password
+    ldy #>book_password
+    jsr .type_login
+    jmp .handle_keys
 +   cmp #KEY_F7
     bne +
     jsr .session_menu
@@ -166,17 +178,39 @@ session_run:
     jsr box_close
     pla
     beq .line_done
+    lda #<INPUT_BUFFER
+    ldy #>INPUT_BUFFER
+    jmp .type_line
+
+; Types the user name or password at A/Y, if the server has one.
+.type_login:
+    sta .typed+1
+    sty .typed+2
     ldx #0
--   lda INPUT_BUFFER,x
+    jsr .typed
+    bne .type_next
+    rts
+
+; Types the text at A/Y as if keyed in, then RETURN.
+.type_line:
+    sta .typed+1
+    sty .typed+2
+    ldx #0
+.type_next:
+    jsr .typed
     beq +
     stx .index
     jsr term_key
     ldx .index
     inx
-    bne -
+    bne .type_next
 +   lda #KEY_RETURN
     jmp term_key
 .line_done:
+    rts
+
+.typed:
+    lda $ffff,x
     rts
 
 ; Shows the connection details and the less common actions.
