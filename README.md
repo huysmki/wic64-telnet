@@ -284,7 +284,7 @@ to the `telnet.prg` download.
 | `ui.asm` | printing, popup boxes, line input, clock |
 | `crash.asm`, `crash_report.asm` | `RUN/STOP` + `RESTORE`: the crash report |
 | `test/` | fake network, scripted scenarios, expected results |
-| `tools/` | `run_test.py`: runs a test build in VICE for `make check` and `make bench`; `bench_data.py`: the benchmark's data |
+| `tools/` | `run_test.py`: runs a test build in VICE for `make check` and `make bench`; `bench_data.py`: the benchmark's data; `test_bbs.py`, `telnet_proxy.py`, `byte_flood_server.py`: servers to test the client against (see [Testing](#testing)) |
 
 Memory: the program runs in two parts around the ANSI character set at
 `$3800`: `$0801`–`$37FF` and `$4000`–`$57FF` (both checked at build time).
@@ -332,6 +332,24 @@ drawn from the top of the screen, like Telehack's `starwars`, in ANSI 80 and
 UTF-8 80, and BBS text that scrolls, in ANSI 80 and ANSI 40
 (`test/bench.asm`). The data goes through the same `receive.asm` loop as a
 real connection.
+
+To try the client against a server on your own computer (in VICE at
+`127.0.0.1`, or from a real C64 on the same network at the address they
+print; connect with `O` on the start screen):
+
+- `tools/test_bbs.py` is a small BBS with a message editor that wraps
+  words like C64 BBSes do, deleting the last word and typing it again on the
+  next line. It needs no login and posts nothing. `--status` also updates a
+  line of the screen while you type, as a BBS with more users does, and
+  `--noise` adds more text to those updates.
+- `tools/telnet_proxy.py host:port` passes a session on to a real BBS and
+  records both directions, with the times. What you type is in the
+  recording too, passwords included.
+- `tools/byte_flood_server.py` sends a steady stream of bytes.
+
+Each session of the first two is recorded as `session-<time>.log` and
+`.server.bin`/`.client.bin`, so that what led to a problem can be looked at
+and played back.
 
 The test builds never touch `net.asm` or the WiC64, so after changing those,
 try a real connection too: `x64sc -userportdevice 23 -autostart
