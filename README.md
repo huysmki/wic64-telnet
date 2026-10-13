@@ -64,7 +64,9 @@ exits) and application cursor keys when they ask for them.
 
 Start screen: `CRSR` select, `HOME` first entry, `RETURN` or `1`–`9` connect,
 `N` new, `E` edit, `D` delete, `T` mode, `S` save to disk, `O` connect to a
-host that isn't in the list (starts in PETSCII mode), `←` WiC64 portal. `N`
+host that isn't in the list (starts in PETSCII mode), `$` the disk's
+directory, `@` a disk command (see [Disk directory and
+commands](#disk-directory-and-commands)), `←` WiC64 portal. `N`
 and `E` ask for the host and then for a name, a user name and a password
 (each may stay empty). When
 editing, the C64 screen editor overwrites text; use `INST` to insert.
@@ -115,6 +117,42 @@ download ran at about 230 bytes a second.
 
 The client doesn't take Telnet commands out of the data unless the server
 spoke Telnet: many Commodore BBSes don't, and their files contain `$FF`.
+
+## Disk directory and commands
+
+On the start screen, `$` lists the directory of the drive the program was
+loaded from (device 8 if unknown): the disk's name, every file with its size
+in blocks and its type, and the blocks free. Any key pauses the list until
+the next key; `RUN/STOP` ends it.
+
+`@` sends a command to that drive and shows its answer below the list, for
+example `01, FILES SCRATCHED,01,00` (the number of files at the end). With
+no command, it shows the drive's status, such as the reason a save failed.
+The commands are the drive's own (CBM DOS); the usual ones:
+
+| Command | Does |
+|---------|------|
+| `S:NAME` | scratch (delete) a file; `*` and `?` work as wildcards, so `S:PART*` deletes every file starting with `PART` |
+| `R:NEW=OLD` | rename the file `OLD` to `NEW` |
+| `C:NEW=OLD` | copy a file on the same disk |
+| `C:NEW=ONE,TWO` | join two files into a new one |
+| `V` | validate: tidy the disk's block map (not on disks with GEOS files) |
+| `I` | initialise: read the disk again, after swapping disks |
+| `N:NAME,ID` | format the disk with a name and a two-character ID; **erases everything on it** |
+| `N:NAME` | the same on a disk formatted before, without an ID: only clears the directory |
+| `UJ` | reset the drive |
+
+An SD2IEC or a similar device adds directories and disk images:
+
+| Command | Does |
+|---------|------|
+| `CD/GAMES` or `CD:GAMES` | change to the directory or the disk image `GAMES` |
+| `CD:←` | back to the parent directory (`←` is the key left of `1`) |
+| `MD:NAME` | make a directory |
+| `RD:NAME` | remove an (empty) directory |
+
+`telnet.cfg` and downloaded files go to the current directory, so after `CD`
+the address book is saved there too.
 
 ## Scrollback
 
@@ -240,7 +278,8 @@ to the `telnet.prg` download.
 | `session.asm` | connection loop, session keys, status line, retry |
 | `scrollback.asm` | rows that left the screen, and the viewer for them |
 | `screen80.asm` | 80 columns: font, bitmap drawing, the split with the text screen |
-| `book.asm` | address book start screen, disk load/save, drive status |
+| `book.asm` | address book start screen, disk load/save, drive status, disk commands |
+| `directory.asm` | the start screen's disk directory |
 | `xfer.asm` | file downloads: XMODEM and Punter |
 | `ui.asm` | printing, popup boxes, line input, clock |
 | `crash.asm`, `crash_report.asm` | `RUN/STOP` + `RESTORE`: the crash report |
@@ -263,17 +302,18 @@ line and the host typed after `O`. 80 columns use
 `$8400`), the bitmap's colours at `$CC00` and the bitmap itself in the RAM
 under the KERNAL ROM, at `$E000`. The crash report and the address book are
 copied to the RAM under the I/O area at start-up: the report to `$D000`, the
-address book to `$D400`, where it stays during a session; the start screen
-works on a copy at `$5800`.
+address book to `$D400`, where it stays during a session, with the start
+screen's directory code after it; the start screen works on a copy of both at
+`$5800`.
 
 ## Testing
 
-`make test` builds `build/test1.prg` … `build/test25.prg`. In these the WiC64
+`make test` builds `build/test1.prg` … `build/test27.prg`. In these the WiC64
 is replaced by a fake server that plays back a script, and keys come from a
 script too (`test/scenarios.asm`): PETSCII with Telnet negotiation, ANSI BBS
 output, UTF-8 host output, address book editing, line input, a network error,
 saving and loading `telnet.cfg` (also ones saved by older versions), the
-login keys, switching to ANSI (or not, for BBSes that
+login keys, the disk directory and a disk command, switching to ANSI (or not, for BBSes that
 only probe for it), a server that stops echoing, the scrollback
 (with a 1 KB buffer, so that it fills up), 80 columns, and the finer points
 of the ANSI and UTF-8 modes. Run one in VICE and look at the screen; what the

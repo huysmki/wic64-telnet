@@ -50,6 +50,11 @@ BOOK_ENTRY_PASSWORD = 80
 .FILE_SIZE = .entries + .MAX_ENTRIES * .ENTRY_SIZE - BOOK_LIST
 .file_end = BOOK_LIST + .FILE_SIZE
 .PAGES = (.FILE_SIZE + $ff) >> 8
+BOOK_PAGES = .PAGES
+BOOK_OVERLAY = BOOK_LIST + .PAGES * $100 ; directory.asm, 1 page
+!if BOOK_OVERLAY + $100 > BOOK_LIST + $800 {
+    !error "The start screen's overlay does not fit after BOOK_LIST"
+}
 ; Older files: entries as the first 40 bytes now (before names) or the
 ; first 60 (before logins)
 .VERSIONS = 3
@@ -193,18 +198,18 @@ book_menu:
     pha
     rts
 
-.KEY_COUNT = 11
+.KEY_COUNT = 13
 .keys:
     !byte KEY_DOWN, KEY_UP, KEY_RETURN, "N", "E", "D", "T", "S", "O"
-    !byte KEY_ARROW_LEFT, KEY_HOME
+    !byte KEY_ARROW_LEFT, KEY_HOME, "$", "@"
 .handlers_lo:
     !byte <(.down-1), <(.up-1), <(.connect_selected-1), <(.new-1), <(.edit-1)
     !byte <(.delete-1), <(.next_type-1), <(.save-1), <(.open-1)
-    !byte <(.portal-1), <(.top-1)
+    !byte <(.portal-1), <(.top-1), <(.directory-1), <(.dos_command-1)
 .handlers_hi:
     !byte >(.down-1), >(.up-1), >(.connect_selected-1), >(.new-1), >(.edit-1)
     !byte >(.delete-1), >(.next_type-1), >(.save-1), >(.open-1)
-    !byte >(.portal-1), >(.top-1)
+    !byte >(.portal-1), >(.top-1), >(.directory-1), >(.dos_command-1)
 
 .down:
     ldx .selected
@@ -455,6 +460,38 @@ book_menu:
     jsr .draw
     jmp .key
 
+.directory:
+    jsr directory_show
+    jsr disk_read_status
+    jmp .show_drive_status
+
+; Sends a command to the drive, or with none reads its status, and
+; shows the drive's answer.
+.dos_command:
+    lda #<.dos_prompt
+    sta .prompt
+    lda #>.dos_prompt
+    sta .prompt+1
+    lda #0
+    sta disk_status         ; no answer if the drive isn't there
+    tay
+    jsr .ask
+    bcc +
+    jsr disk_read_status
+    jmp .show_drive_status
++   ldx #<INPUT_BUFFER
+    ldy #>INPUT_BUFFER
+    jsr disk_command
+.show_drive_status:
+    lda disk_status
+    bne +
+    lda #<.no_drive_message
+    ldy #>.no_drive_message
+    jmp .show_message
++   lda #<disk_status
+    ldy #>disk_status
+    jmp .show_message
+
 .save:
     lda #<.saving_message
     ldy #>.saving_message
@@ -617,22 +654,26 @@ book_menu:
     bne -
 +   rts
 
-; Copies the list from BOOK_STORE to BOOK_LIST, for the start screen
+; Copies the list from BOOK_STORE to BOOK_LIST, for the start screen,
+; with the overlay after it
 .fetch:
     lda #>BOOK_STORE
     ldx #>BOOK_LIST
+    ldy #.PAGES + 1
     bne .copy_list          ; always
-; and back again, after a change
+; and the list back again, after a change
 .keep:
     lda #>BOOK_LIST
     ldx #>BOOK_STORE
+    ldy #.PAGES
 .copy_list:
     sta zp_a+1
     stx zp_b+1
+    tya
+    tax
     lda #0
     sta zp_a
     sta zp_b
-    ldx #.PAGES
     tay
     sei
     lda #R6510_ALL_RAM      ; BOOK_STORE is under the I/O area
@@ -807,18 +848,21 @@ disk_command:
     ldy #15
     jsr SETLFS
     jsr OPEN
+    bcs .command_failed
+    jsr disk_read_open_status ; before closing: that resets the status
     php
+    lda #15
+    jsr CLOSE
+    plp
+    lda #1                  ; Z=0: the drive reported the error
+    rts
+.command_failed:
     pha
     lda #15
     jsr CLOSE
     pla
-    plp
-    bcs .command_failed
-    jsr disk_read_status
-    lda #1                  ; Z=0: the drive reported the error
-    rts
-.command_failed:
     ldx #0                  ; Z=1: A = KERNAL error
+    sec
     rts
 
 ; Reads the drive's status message into disk_status (0-terminated,
@@ -937,7 +981,9 @@ book_password: !fill .FIELD_MAX + 1, 0
     !pet PET_WHITE, "D", PET_GREEN, "elete ", PET_WHITE, "T", PET_GREEN, "ype "
     !pet PET_WHITE, "S", PET_GREEN, "ave to disk", 13
     !pet PET_WHITE, "O", PET_GREEN, "pen other host  "
-    !pet PET_WHITE, "_", PET_GREEN, " WiC64 portal", 13, 13
+    !pet PET_WHITE, "_", PET_GREEN, " WiC64 portal", 13
+    !pet PET_WHITE, "$", PET_GREEN, " directory  "
+    !pet PET_WHITE, "@", PET_GREEN, " disk command", 13
     !pet "Online: ", PET_WHITE, "F1", PET_GREEN, " hang up  "
     !pet PET_WHITE, "F3", PET_GREEN, " type a line", 13
     !pet "        ", PET_WHITE, "F5", PET_GREEN, " echo  "
@@ -946,8 +992,9 @@ book_password: !fill .FIELD_MAX + 1, 0
 .empty_message:   !pet "No servers yet. Press N to add one.", 0
 .host_prompt:     !pet "Server as host:port, e.g. bbs.org:23", 0
 .name_prompt:     !pet "Name (may be left empty)", 0
-.user_prompt:     !pet "User name, sent on F4 (may be empty)", 0
-.password_prompt: !pet "Password, sent on F6 (may be empty)", 0
+.user_prompt:     !pet "User name, sent on F4", 0
+.password_prompt: !pet "Password, sent on F6", 0
+.dos_prompt:      !pet "Disk command (none: drive status)", 0
 .delete_prompt:   !pet "Delete ", PET_WHITE, 0
 .yes_no:          !pet PET_GREEN, "? (Y/N)", 0
 .full_message:    !pet "The list is full (16 servers).", 0
