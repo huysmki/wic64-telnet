@@ -134,6 +134,9 @@ drive_show:
 ; L: the address book from the drive in the title
 drive_load_key:
     jsr .ask_name
+    lda #<.loading
+    ldy #>.loading
+    jsr .show_busy
     jsr .load
     bcc +
     lda #<.not_loaded
@@ -150,11 +153,15 @@ save_key:
     jsr .ask_name
     lda #<.saving
     ldy #>.saving
-    sta book_message
-    sty book_message+1
-    jsr book_draw_message
+    jsr .show_busy
     jsr .save
     jmp book_show_message
+
+; Shows the message at A/Y while the drive works.
+.show_busy:
+    sta book_message
+    sty book_message+1
+    jmp book_draw_message
 ; Returns A/Y = the message to show.
 .save:
     lda #.scratch_tmp_length ; left over from an earlier failed save
@@ -246,6 +253,7 @@ save_key:
 .no_message: !byte 0
 .loaded:     !pet "Loaded.", 0
 .not_loaded: !pet "Not found on this drive.", 0
+.loading:    !pet "Loading...", 0
 .saving:     !pet "Saving...", 0
 .saved:      !pet "Saved.", 0
 .disk_error: !pet "Disk error.", 0
