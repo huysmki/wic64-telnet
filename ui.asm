@@ -371,6 +371,27 @@ box_close:
 ; Line input
 ;---------------------------------------------------------
 
+!zone disk_present {
+; Returns C=1 if disk_device doesn't answer on the serial bus. The
+; KERNAL notices a missing drive when it sends to it, but waits for ever
+; for one to talk while another drive is on the bus.
+disk_present:
+    lda #0
+    sta .STATUS
+    lda disk_device
+    jsr .LISTEN
+    lda #$6f                ; channel 15
+    jsr .SECOND
+    jsr .UNLSN
+    lda .STATUS             ; bit 7: device not present
+    asl
+    rts
+.STATUS = $90
+.LISTEN = $ffb1
+.SECOND = $ff93
+.UNLSN  = $ffae
+}
+
 !zone ui_input {
 ; Lets the user edit a line with the screen editor, starting at the
 ; cursor. The line may run on into the next row (80 characters).

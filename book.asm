@@ -51,7 +51,7 @@ BOOK_ENTRY_PASSWORD = 80
 .file_end = BOOK_LIST + .FILE_SIZE
 .PAGES = (.FILE_SIZE + $ff) >> 8
 BOOK_PAGES = .PAGES
-BOOK_OVERLAY = BOOK_LIST + .PAGES * $100 ; directory.asm, 1 page
+BOOK_OVERLAY = BOOK_LIST + .PAGES * $100 ; disk_tools.asm, 1 page
 !if BOOK_OVERLAY + $100 > BOOK_LIST + $800 {
     !error "The start screen's overlay does not fit after BOOK_LIST"
 }
@@ -60,14 +60,15 @@ BOOK_OVERLAY = BOOK_LIST + .PAGES * $100 ; directory.asm, 1 page
 .VERSIONS = 3
 
 ; Loads the saved address book, if there is one.
+; The drive is the one the program was loaded from, or drive 8
+; (disk_tools.asm's drive_init, in the overlay).
 book_init:
-    lda LAST_DEVICE
-    cmp #8
-    bcc +
-    cmp #31
-    bcc ++
-+   lda #8
-++  sta disk_device
+    jsr .fetch
+    jmp drive_init
+
+; Loads telnet.cfg from disk_device into the list. Returns C=0 if it
+; was there.
+book_load:
     lda #0
     jsr SETMSG              ; no KERNAL "SEARCHING/LOADING" messages
 
@@ -112,6 +113,7 @@ book_init:
     sta .loaded_entry_size
     jmp .convert
 .load_done:
+    sec
     rts
 
 ; Puts the loaded file into the list, entry by entry, and keeps it.
@@ -167,7 +169,9 @@ book_init:
 +   dex
     bne --
 .converted:
-    jmp .keep
+    jsr .keep
+    clc
+    rts
 
 ; Runs the start screen until the user picks a server.
 ; Returns C=0 with A/Y = "host:port" and X = terminal mode to connect,
@@ -198,18 +202,20 @@ book_menu:
     pha
     rts
 
-.KEY_COUNT = 13
+.KEY_COUNT = 14
 .keys:
     !byte KEY_DOWN, KEY_UP, KEY_RETURN, "N", "E", "D", "T", "S", "O"
-    !byte KEY_ARROW_LEFT, KEY_HOME, "$", "@"
+    !byte KEY_ARROW_LEFT, KEY_HOME, "$", "@", "#"
 .handlers_lo:
     !byte <(.down-1), <(.up-1), <(.connect_selected-1), <(.new-1), <(.edit-1)
     !byte <(.delete-1), <(.next_type-1), <(.save-1), <(.open-1)
     !byte <(.portal-1), <(.top-1), <(.directory-1), <(.dos_command-1)
+    !byte <(drive_key-1)
 .handlers_hi:
     !byte >(.down-1), >(.up-1), >(.connect_selected-1), >(.new-1), >(.edit-1)
     !byte >(.delete-1), >(.next_type-1), >(.save-1), >(.open-1)
     !byte >(.portal-1), >(.top-1), >(.directory-1), >(.dos_command-1)
+    !byte >(drive_key-1)
 
 .down:
     ldx .selected
@@ -454,6 +460,9 @@ book_menu:
     jsr .keep
     lda #<.unsaved_message
     ldy #>.unsaved_message
+; Shows the message at A/Y and waits for the next key (also for
+; disk_tools.asm).
+book_show_message:
 .show_message:
     sta .message
     sty .message+1
@@ -697,6 +706,7 @@ book_menu:
 
 .draw:
     jsr ui_screen_menu
+    jsr drive_show
     +print .title
     jsr .draw_entries
     +plot 0, 19
@@ -881,6 +891,8 @@ disk_read_status:
 ; Opens the drive's command channel as logical file 15. C=1 if the
 ; drive could not be reached.
 disk_open_command_channel:
+    jsr disk_present        ; reading from a drive that isn't there
+    bcs +                   ; would wait for ever
     lda #0
     jsr SETNAM
     lda #15
@@ -888,6 +900,7 @@ disk_open_command_channel:
     ldy #15
     jsr SETLFS
     jmp OPEN
++   rts
 
 ; The same as disk_read_status, from the command channel opened with
 ; disk_open_command_channel. While another file on the drive is open,
@@ -973,7 +986,9 @@ book_password: !fill .FIELD_MAX + 1, 0
 
 .title:
     !pet PET_RVS_ON, PET_LIGHT_GREEN
-    !pet "        WiC64 Telnet Client 3.3        ", PET_RVS_OFF, 0
+    !pet "  WiC64 Telnet Client 3.3    Drive "
+book_title_drive:           ; disk_tools.asm's drive_show puts it here
+    !pet "8   ", PET_RVS_OFF, 0
 .help:
     !pet PET_WHITE, "RETURN", PET_GREEN, "/", PET_WHITE, "1-9", PET_GREEN, " connect  "
     !pet PET_WHITE, "CRSR", PET_GREEN, " select", 13

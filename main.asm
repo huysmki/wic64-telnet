@@ -17,7 +17,7 @@
 ;   session.asm   connection loop, session keys, status line
 ;   scrollback.asm rows that left the screen, and a viewer for them
 ;   book.asm      address book start screen, saved to disk
-;   directory.asm the start screen's disk directory (under the I/O area)
+;   disk_tools.asm the start screen's directory and drive (under I/O)
 ;   ui.asm        printing, popup boxes, line input, clock
 ;   crash.asm     RUN/STOP + RESTORE: where the client was
 ;---------------------------------------------------------
@@ -158,9 +158,9 @@ under_io_load:
     +book_defaults
 !fill BOOK_STORE + BOOK_PAGES * $100 - *, 0
 !pseudopc BOOK_OVERLAY {
-!src "directory.asm"
+!src "disk_tools.asm"
     !if * > BOOK_OVERLAY + $100 {
-        !error "directory.asm is longer than the overlay's page"
+        !error "disk_tools.asm is longer than the overlay's page"
     }
 }
 }

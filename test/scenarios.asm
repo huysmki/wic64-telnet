@@ -10,6 +10,7 @@ ESC = $1b
 ; made with !set, as !ifndef on a label that is defined further on is
 ; true in ACME's first pass only, and the bytes would not be there.)
 !set TEST_TRANSFERS = 0
+!set TEST_LAST_DEVICE = 0       ; 0: as loaded (see fake_net.asm)
 
 !if SCENARIO = 1 {
 ; PETSCII BBS with Telnet negotiation, typing, line input
@@ -753,6 +754,35 @@ test_keys:
     !byte TK_IDLE, 5
     !byte TK_END
 }
+
+!if SCENARIO = 28 {
+; The drive on the start screen: # steps through drives 8 to 11 and
+; wraps; $ on drive 11, which isn't there
+test_rx:
+    !byte 0
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte "#", "#", "#", "#", "#", "#", "#"
+    !byte "$", "X"
+    !byte TK_END
+}
+
+!if SCENARIO = 29 {
+; Started as if loaded from drive 9, which isn't there: the address book
+; is found on drive 8 (saved by the scenarios before), and drive 8 used
+!set TEST_LAST_DEVICE = 9
+test_rx:
+    !byte 0
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte TK_END
+}
+
+test_last_device: !byte TEST_LAST_DEVICE
 
 ; Scenarios without a file transfer
 !if TEST_TRANSFERS = 0 {
