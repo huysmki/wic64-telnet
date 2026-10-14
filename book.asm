@@ -50,10 +50,13 @@ BOOK_ENTRY_PASSWORD = 80
 .FILE_SIZE = .entries + .MAX_ENTRIES * .ENTRY_SIZE - BOOK_LIST
 .file_end = BOOK_LIST + .FILE_SIZE
 .PAGES = (.FILE_SIZE + $ff) >> 8
-BOOK_PAGES = .PAGES
-BOOK_OVERLAY = BOOK_LIST + .PAGES * $100 ; disk_tools.asm, 1 page
-!if BOOK_OVERLAY + $100 > BOOK_LIST + $800 {
-    !error "The start screen's overlay does not fit after BOOK_LIST"
+BOOK_FILE_SIZE = .FILE_SIZE
+; The name to load and save the list as, 0-terminated: right after it,
+; so that it is kept and fetched with it
+book_file_name = BOOK_LIST + .FILE_SIZE
+BOOK_FILE_NAME_MAX = 16
+!if .FILE_SIZE + BOOK_FILE_NAME_MAX + 1 > .PAGES * $100 {
+    !error "The file name doesn't fit after the list"
 }
 ; Older files: entries as the first 40 bytes now (before names) or the
 ; first 60 (before logins)
@@ -66,16 +69,11 @@ book_init:
     jsr .fetch
     jmp drive_init
 
-; Loads telnet.cfg from disk_device into the list. Returns C=0 if it
-; was there.
+; Loads the file named with SETNAM (disk_tools.asm's file_name) from
+; disk_device into the list. Returns C=0 if it was there.
 book_load:
     lda #0
     jsr SETMSG              ; no KERNAL "SEARCHING/LOADING" messages
-
-    lda #.filename_length
-    ldx #<.filename
-    ldy #>.filename
-    jsr SETNAM
     lda #1
     ldx disk_device
     ldy #0                  ; load to the address given below
@@ -118,11 +116,11 @@ book_load:
 
 ; Puts the loaded file into the list, entry by entry, and keeps it.
 .convert:
-    lda #<BOOK_LIST         ; an empty list...
-    sta zp_a
+    lda #<BOOK_LIST         ; an empty list (exactly: the file name is
+    sta zp_a                ; after it)...
     lda #>BOOK_LIST
     sta zp_a+1
-    ldx #.PAGES
+    ldx #.FILE_SIZE >> 8
     lda #0
     tay
 -   sta (zp_a),y
@@ -131,6 +129,13 @@ book_load:
     inc zp_a+1
     dex
     bne -
+    ldy #(.FILE_SIZE & $ff) - 1
+-   sta (zp_a),y
+    dey
+    bpl -
+!if (.FILE_SIZE & $ff) = 0 | (.FILE_SIZE & $ff) > $80 {
+    !error "The list's last page doesn't suit the loop above"
+}
     ldx #.MAGIC_LENGTH-1
 -   lda .magic,x
     sta BOOK_LIST,x
@@ -202,20 +207,20 @@ book_menu:
     pha
     rts
 
-.KEY_COUNT = 14
+.KEY_COUNT = 15
 .keys:
     !byte KEY_DOWN, KEY_UP, KEY_RETURN, "N", "E", "D", "T", "S", "O"
-    !byte KEY_ARROW_LEFT, KEY_HOME, "$", "@", "#"
+    !byte KEY_ARROW_LEFT, KEY_HOME, "$", "@", "#", "L"
 .handlers_lo:
     !byte <(.down-1), <(.up-1), <(.connect_selected-1), <(.new-1), <(.edit-1)
-    !byte <(.delete-1), <(.next_type-1), <(.save-1), <(.open-1)
+    !byte <(.delete-1), <(.next_type-1), <(save_key-1), <(.open-1)
     !byte <(.portal-1), <(.top-1), <(.directory-1), <(.dos_command-1)
-    !byte <(drive_key-1)
+    !byte <(drive_key-1), <(drive_load_key-1)
 .handlers_hi:
     !byte >(.down-1), >(.up-1), >(.connect_selected-1), >(.new-1), >(.edit-1)
-    !byte >(.delete-1), >(.next_type-1), >(.save-1), >(.open-1)
+    !byte >(.delete-1), >(.next_type-1), >(save_key-1), >(.open-1)
     !byte >(.portal-1), >(.top-1), >(.directory-1), >(.dos_command-1)
-    !byte >(drive_key-1)
+    !byte >(drive_key-1), >(drive_load_key-1)
 
 .down:
     ldx .selected
@@ -501,18 +506,6 @@ book_show_message:
     ldy #>disk_status
     jmp .show_message
 
-.save:
-    lda #<.saving_message
-    ldy #>.saving_message
-    sta .message
-    sty .message+1
-    jsr .draw_message
-    jsr .write_file
-    sta .message
-    sty .message+1
-    jsr .draw_message
-    jmp .key
-
 ;---------------------------------------------------------
 
 ; X = entry index; points zp_a at the entry. Changes X.
@@ -585,6 +578,7 @@ book_show_message:
     stx .prompt
     ldx #>.host_prompt
     stx .prompt+1
+book_ask:                   ; (also for disk_tools.asm, with book_prompt)
 .ask:
     pha
     tya
@@ -664,16 +658,21 @@ book_show_message:
 +   rts
 
 ; Copies the list from BOOK_STORE to BOOK_LIST, for the start screen,
-; with the overlay after it
+; and the start screen's overlay (disk_tools.asm) to BOOK_OVERLAY
 .fetch:
+    lda #>BOOK_OVERLAY_STORE
+    ldx #>BOOK_OVERLAY
+    ldy #BOOK_OVERLAY_PAGES
+    jsr .copy_list
     lda #>BOOK_STORE
     ldx #>BOOK_LIST
-    ldy #.PAGES + 1
-    bne .copy_list          ; always
-; and the list back again, after a change
+    bne .list_pages         ; always
+; and the list back again, after a change (also for disk_tools.asm)
+book_keep:
 .keep:
     lda #>BOOK_LIST
     ldx #>BOOK_STORE
+.list_pages:
     ldy #.PAGES
 .copy_list:
     sta zp_a+1
@@ -768,6 +767,7 @@ book_show_message:
     bcc .draw_entry
     rts
 
+book_draw_message:
 .draw_message:
     +plot 0, .MESSAGE_ROW
     lda #PET_GREY
@@ -780,72 +780,6 @@ book_show_message:
 ;---------------------------------------------------------
 ; Disk
 ;---------------------------------------------------------
-
-; Replaces "telnet.cfg" on disk with the current list. The list is
-; written to "telnet.tmp" first and only renamed once it is on disk
-; completely, so a failed save leaves the old file alone.
-; Returns A/Y = message describing the result.
-.write_file:
-    lda #.scratch_tmp_length ; left over from an earlier failed save
-    ldx #<.scratch_tmp
-    ldy #>.scratch_tmp
-    jsr disk_command
-    bcs .disk_failed
-
-    lda #.tmp_filename_length
-    ldx #<.tmp_filename
-    ldy #>.tmp_filename
-    jsr SETNAM
-    lda #1
-    ldx disk_device
-    ldy #0
-    jsr SETLFS
-    lda #<BOOK_LIST
-    sta zp_a
-    lda #>BOOK_LIST
-    sta zp_a+1
-    lda #zp_a
-    ldx #<.file_end
-    ldy #>.file_end
-    jsr SAVE
-    bcs .kernal_error
-    jsr disk_read_status
-    bcs .drive_error_message
-
-    lda #.scratch_length
-    ldx #<.scratch
-    ldy #>.scratch
-    jsr disk_command
-    bcs .disk_failed
-    lda #.rename_length
-    ldx #<.rename
-    ldy #>.rename
-    jsr disk_command
-    bcs .disk_failed
-    lda #<.saved_message
-    ldy #>.saved_message
-    rts
-
-.disk_failed:
-    bne .drive_error_message
-.kernal_error:
-    cmp #5
-    bne +
-    lda #<.no_drive_message
-    ldy #>.no_drive_message
-    rts
-+
-.unknown_disk_error:
-    lda #<.disk_error_message
-    ldy #>.disk_error_message
-    rts
-
-.drive_error_message:
-    lda disk_status
-    beq .unknown_disk_error
-    lda #<disk_status
-    ldy #>disk_status
-    rts
 
 ; Sends the DOS command at X/Y (length A) and reads the drive status
 ; (also for file transfers).
@@ -941,8 +875,10 @@ disk_read_open_status:
 ;---------------------------------------------------------
 
 disk_device: !byte 8         ; the drive the program was loaded from
+book_selected:              ; (for disk_tools.asm)
 .selected: !byte 0
 .index:    !byte 0
+book_message:
 .message:  !word .empty_text
 
 ; book_init's file versions: before names, before logins, and now
@@ -955,6 +891,7 @@ disk_device: !byte 8         ; the drive the program was loaded from
                  !byte >(book_load_buffer + .FILE_SIZE)
 .loaded_end:        !word 0
 .loaded_entry_size: !byte 0
+book_prompt:
 .prompt:     !word 0
 .field:      !byte 0
 .field_end:  !byte 0
@@ -972,16 +909,6 @@ book_password: !fill .FIELD_MAX + 1, 0
     !error "The address book file does not fit book_load_buffer"
 }
 
-.filename: !pet "telnet.cfg"
-.filename_length = * - .filename
-.tmp_filename: !pet "telnet.tmp"
-.tmp_filename_length = * - .tmp_filename
-.scratch:  !pet "s0:telnet.cfg"
-.scratch_length = * - .scratch
-.scratch_tmp: !pet "s0:telnet.tmp"
-.scratch_tmp_length = * - .scratch_tmp
-.rename:   !pet "r0:telnet.cfg=telnet.tmp"
-.rename_length = * - .rename
 
 
 .title:
@@ -994,7 +921,7 @@ book_title_drive:           ; disk_tools.asm's drive_show puts it here
     !pet PET_WHITE, "CRSR", PET_GREEN, " select", 13
     !pet PET_WHITE, "N", PET_GREEN, "ew ", PET_WHITE, "E", PET_GREEN, "dit "
     !pet PET_WHITE, "D", PET_GREEN, "elete ", PET_WHITE, "T", PET_GREEN, "ype "
-    !pet PET_WHITE, "S", PET_GREEN, "ave to disk", 13
+    !pet PET_WHITE, "S", PET_GREEN, "ave ", PET_WHITE, "L", PET_GREEN, "oad", 13
     !pet PET_WHITE, "O", PET_GREEN, "pen other host  "
     !pet PET_WHITE, "_", PET_GREEN, " WiC64 portal", 13
     !pet PET_WHITE, "$", PET_GREEN, " directory  "
@@ -1014,10 +941,8 @@ book_title_drive:           ; disk_tools.asm's drive_show puts it here
 .yes_no:          !pet PET_GREEN, "? (Y/N)", 0
 .full_message:    !pet "The list is full (16 servers).", 0
 .unsaved_message: !pet "Changed. Press S to save to disk.", 0
-.saving_message:  !pet "Saving...", 0
-.saved_message:   !pet "Saved.", 0
+book_no_drive_message:
 .no_drive_message:   !pet "No disk drive found.", 0
-.disk_error_message: !pet "Disk error.", 0
 .empty_text:      !byte 0
 }
 

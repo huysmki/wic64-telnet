@@ -156,13 +156,13 @@ under_io_load:
 }
 !fill BOOK_STORE - *, 0
     +book_defaults
-!fill BOOK_STORE + BOOK_PAGES * $100 - *, 0
+    !pet "telnet.cfg", 0    ; book_file_name
+!fill BOOK_OVERLAY_STORE - *, 0
+book_overlay_start:
 !pseudopc BOOK_OVERLAY {
 !src "disk_tools.asm"
-    !if * > BOOK_OVERLAY + $100 {
-        !error "disk_tools.asm is longer than the overlay's page"
-    }
 }
+BOOK_OVERLAY_PAGES = (* - book_overlay_start + $ff) >> 8
 }
 under_io_end:
 UNDER_IO_PAGES = (under_io_end - under_io_load + $ff) >> 8

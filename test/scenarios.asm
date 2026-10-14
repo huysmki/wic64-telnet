@@ -178,7 +178,7 @@ test_keys:
     !byte TK_TYPE, 1, KEY_RETURN    ; no name, no login
     !byte TK_TYPE, 1, KEY_RETURN, TK_TYPE, 1, KEY_RETURN
     !byte "T"
-    !byte "S"
+    !byte "S", TK_TYPE, 1, KEY_RETURN   ; as telnet.cfg
     !byte TK_END
 }
 
@@ -191,7 +191,7 @@ test_rx_end:
 
 !align 255, 0
 test_keys:
-    !byte "S"
+    !byte "S", TK_TYPE, 1, KEY_RETURN   ; as telnet.cfg
     !byte TK_END
 }
 
@@ -702,7 +702,7 @@ test_keys:
     !byte KEY_DOWN, "E", TK_TYPE, 1, KEY_RETURN ; the second keeps its
     !byte TK_TYPE, 4, "A", "N", "S", KEY_RETURN ; host, gets a name
     !byte TK_TYPE, 1, KEY_RETURN, TK_TYPE, 1, KEY_RETURN
-    !byte "S"
+    !byte "S", TK_TYPE, 1, KEY_RETURN   ; as telnet.cfg
     !byte TK_END
 }
 
@@ -720,7 +720,7 @@ test_keys:
     !byte TK_TYPE, 1, KEY_RETURN                ; are, then the login
     !byte TK_TYPE, 4, "K", "I", "M", KEY_RETURN
     !byte TK_TYPE, 7, "S", "E", "C", "R", "E", "T", KEY_RETURN
-    !byte "S"
+    !byte "S", TK_TYPE, 1, KEY_RETURN   ; as telnet.cfg
     !byte KEY_RETURN                            ; connect
     !byte TK_WAIT_RX
     !byte KEY_F4, KEY_F6
@@ -779,6 +779,23 @@ test_rx_end:
 
 !align 255, 0
 test_keys:
+    !byte TK_END
+}
+
+!if SCENARIO = 30 {
+; Saving and loading under another name: the list (from the scenarios
+; before) saved as MINE, an entry deleted, MINE loaded again; then a
+; name that isn't on the disk
+test_rx:
+    !byte 0
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte "S", TK_TYPE, 5, "M", "I", "N", "E", KEY_RETURN
+    !byte "D", "Y"
+    !byte "L", TK_TYPE, 5, "M", "I", "N", "E", KEY_RETURN
+    !byte "L", TK_TYPE, 5, "N", "O", "N", "E", KEY_RETURN
     !byte TK_END
 }
 

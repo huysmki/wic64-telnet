@@ -6,8 +6,8 @@ C1541 ?= $(if $(VICE_BIN),$(VICE_BIN)/c1541,c1541)
 SOURCES = main.asm defs.asm ui.asm net.asm receive.asm telnet.asm term.asm ansi.asm scrollback.asm screen80.asm \
           charmaps.asm session.asm book.asm xfer.asm crash.asm crash_report.asm disk_tools.asm \
           wic64.h wic64.asm
-SCENARIOS = 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29
-DISK_SCENARIOS = 7 8 20 21 22 23 24 25 26 27 29 26 27
+SCENARIOS = 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
+DISK_SCENARIOS = 7 8 20 21 22 23 24 25 26 27 29 30 26 27
 # Files the download scenarios save on the test disk: name:expected .bin
 DOWNLOADS = xmts:test20 punt,s:test21 auto,s:test22 one,s:test23a two:test23b
 # Files put on the test disk just before a scenario: scenario:name:file
@@ -15,7 +15,7 @@ DISK_FILES = 24:telnet.cfg:build/wtb1.cfg 25:telnet.cfg:build/wtb2.cfg \
              27:junk:build/wtb1.cfg
 # Files read from the test disk just after a scenario, compared with
 # their .bin: scenario:name:expected
-SAVED_FILES = 24:telnet.cfg:test24 25:telnet.cfg:test25
+SAVED_FILES = 24:telnet.cfg:test24 25:telnet.cfg:test25 30:mine:test30
 
 build/telnet.prg: $(SOURCES)
 	@mkdir -p build

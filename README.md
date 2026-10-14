@@ -63,7 +63,8 @@ exits) and application cursor keys when they ask for them.
 ## Keys
 
 Start screen: `CRSR` select, `HOME` first entry, `RETURN` or `1`–`9` connect,
-`N` new, `E` edit, `D` delete, `T` mode, `S` save to disk, `O` connect to a
+`N` new, `E` edit, `D` delete, `T` mode, `S` save, `L` load (both ask for a
+file name; `RETURN` on its own keeps the one shown), `O` connect to a
 host that isn't in the list (starts in PETSCII mode), `$` the disk's
 directory, `@` a disk command, `#` the next drive (see [Disk directory and
 commands](#disk-directory-and-commands)), `←` WiC64 portal. `N`
@@ -120,8 +121,8 @@ spoke Telnet: many Commodore BBSes don't, and their files contain `$FF`.
 
 ## Disk directory and commands
 
-The start screen's title shows the drive the client uses for `telnet.cfg`,
-downloads, `$` and `@`. At start-up that is the drive the program was loaded
+The start screen's title shows the drive the client uses for the address book
+(`S`, `L`), downloads, `$` and `@`. At start-up that is the drive the program was loaded
 from, if `telnet.cfg` is there; otherwise drive 8. (Started from the WiC64
 portal, a cartridge or a launcher, the "last drive" the C64 remembers need
 not be a drive at all.) `#` steps to the next drive, 8 to 11. A drive that
@@ -251,9 +252,13 @@ Telehack writes 80-column text whatever window size it is told, so it is set
 to UTF-8 80; in UTF-8 its longer lines wrap onto two rows.
 
 The list is stored in `telnet.cfg` on the drive shown on the start screen (see
-[Disk directory and commands](#disk-directory-and-commands)). It is loaded at start-up and written when you press `S`:
-first as `telnet.tmp`, which then replaces `telnet.cfg`, so a failed save
-leaves the old list on the disk. A `telnet.cfg` saved by an older version
+[Disk directory and commands](#disk-directory-and-commands)). It is loaded
+at start-up and written when you press `S`: first as `telnet.tmp`, which then
+replaces `telnet.cfg`, so a failed save leaves the old list on the disk. `S`
+and `L` ask for a file name, so you can keep more lists (`L` loads one; with
+`#` first, from another drive). `RETURN` on its own keeps the name shown,
+`telnet.cfg` to begin with; the client remembers the last one until it is
+started again. A `telnet.cfg` saved by an older version
 (without names or logins) is read as well; the next save writes the new
 format, which older versions no longer read (they start with their own list
 instead).
@@ -285,7 +290,7 @@ to the `telnet.prg` download.
 | `scrollback.asm` | rows that left the screen, and the viewer for them |
 | `screen80.asm` | 80 columns: font, bitmap drawing, the split with the text screen |
 | `book.asm` | address book start screen, disk load/save, drive status, disk commands |
-| `disk_tools.asm` | the start screen's disk directory and choice of drive |
+| `disk_tools.asm` | the start screen's disk directory, choice of drive, and saving and loading the address book |
 | `xfer.asm` | file downloads: XMODEM and Punter |
 | `ui.asm` | printing, popup boxes, line input, clock |
 | `crash.asm`, `crash_report.asm` | `RUN/STOP` + `RESTORE`: the crash report |
@@ -308,19 +313,19 @@ line and the host typed after `O`. 80 columns use
 `$8400`), the bitmap's colours at `$CC00` and the bitmap itself in the RAM
 under the KERNAL ROM, at `$E000`. The crash report and the address book are
 copied to the RAM under the I/O area at start-up: the report to `$D000`, the
-address book to `$D400`, where it stays during a session, with the start
-screen's directory code after it; the start screen works on a copy of both at
-`$5800`.
+address book to `$D400`, where it stays during a session, and the start
+screen's disk tools to `$DB00`; the start screen works on copies of them, at
+`$5800` and `$6000`.
 
 ## Testing
 
-`make test` builds `build/test1.prg` … `build/test29.prg`. In these the WiC64
+`make test` builds `build/test1.prg` … `build/test30.prg`. In these the WiC64
 is replaced by a fake server that plays back a script, and keys come from a
 script too (`test/scenarios.asm`): PETSCII with Telnet negotiation, ANSI BBS
 output, UTF-8 host output, address book editing, line input, a network error,
 saving and loading `telnet.cfg` (also ones saved by older versions), the
 login keys, the disk directory, a disk command, choosing the drive and
-starting from another one, switching to ANSI (or not, for BBSes that
+starting from another one, saving and loading under another name, switching to ANSI (or not, for BBSes that
 only probe for it), a server that stops echoing, the scrollback
 (with a 1 KB buffer, so that it fills up), 80 columns, and the finer points
 of the ANSI and UTF-8 modes. Run one in VICE and look at the screen; what the
