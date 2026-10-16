@@ -134,7 +134,8 @@ zp_put_b = $f9
 ;                TRANSFER_BUFFER during a file transfer; BOOK_LIST: the
 ;                address book while the start screen shows it
 ;   $6000-$7fff  80 columns: the cells of the screen and of the
-;                alternate screen
+;                alternate screen; on the start screen BOOK_OVERLAY,
+;                its disk tools (disk_tools.asm)
 ;   $8000-$83ff  80 columns: FONT80
 ;   $6000-$9fff  SCROLLBACK ring in 40 columns, from $8400 in 80. Test
 ;                builds use 1 KB, so that it fills up, and log what the
@@ -145,8 +146,9 @@ zp_put_b = $f9
 ;   $c000-$cbff  BSS: uninitialised buffers
 ;   $cc00-$cfe7  80 columns: colours of the bitmap (VIC bank 3)
 ;   $d000-$dfff  UNDER_IO, the RAM under the I/O area: CRASH_REPORT
-;                (crash.asm) and from $d400 BOOK_STORE, where the
-;                address book is kept meanwhile
+;                (crash.asm), from $d400 BOOK_STORE, where the address
+;                book is kept meanwhile, and from $db00
+;                BOOK_OVERLAY_STORE, the start screen's disk tools
 ;   $e000-$ff3f  80 columns: the bitmap, in the RAM under the KERNAL ROM
 ;   $fffa-$ffff  80 columns: interrupt vectors for while the KERNAL ROM
 ;                is switched off
@@ -183,6 +185,8 @@ UNDER_IO         = $d000
 CRASH_REPORT     = UNDER_IO
 BOOK_STORE       = $d400          ; up to 2 KB
 BOOK_LIST        = $5800          ; up to 2 KB
+BOOK_OVERLAY_STORE = $db00        ; up to 1.25 KB, to $dfff
+BOOK_OVERLAY     = $6000          ; disk_tools.asm, on the start screen
 BSS              = $c000
 box_save_buffer  = BSS            ; 8 rows * (40 screen + 40 color)
 box_save_links   = BSS + $0280    ; 25 bytes

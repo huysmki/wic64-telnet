@@ -1,5 +1,5 @@
 ;---------------------------------------------------------
-; WiC64 Telnet Client 3.3
+; WiC64 Telnet Client 3.4
 ;
 ; Build:       acme -f cbm -o telnet.prg main.asm
 ; Test build:  acme -f cbm -DTEST=1 -DSCENARIO=<n> -o test.prg main.asm
@@ -17,7 +17,7 @@
 ;   session.asm   connection loop, session keys, status line
 ;   scrollback.asm rows that left the screen, and a viewer for them
 ;   book.asm      address book start screen, saved to disk
-;   directory.asm the start screen's disk directory (under the I/O area)
+;   disk_tools.asm the start screen's directory and drive (under I/O)
 ;   ui.asm        printing, popup boxes, line input, clock
 ;   crash.asm     RUN/STOP + RESTORE: where the client was
 ;---------------------------------------------------------
@@ -156,13 +156,13 @@ under_io_load:
 }
 !fill BOOK_STORE - *, 0
     +book_defaults
-!fill BOOK_STORE + BOOK_PAGES * $100 - *, 0
+    !pet "telnet.cfg", 0    ; book_file_name
+!fill BOOK_OVERLAY_STORE - *, 0
+book_overlay_start:
 !pseudopc BOOK_OVERLAY {
-!src "directory.asm"
-    !if * > BOOK_OVERLAY + $100 {
-        !error "directory.asm is longer than the overlay's page"
-    }
+!src "disk_tools.asm"
 }
+BOOK_OVERLAY_PAGES = (* - book_overlay_start + $ff) >> 8
 }
 under_io_end:
 UNDER_IO_PAGES = (under_io_end - under_io_load + $ff) >> 8

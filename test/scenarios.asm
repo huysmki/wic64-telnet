@@ -10,6 +10,7 @@ ESC = $1b
 ; made with !set, as !ifndef on a label that is defined further on is
 ; true in ACME's first pass only, and the bytes would not be there.)
 !set TEST_TRANSFERS = 0
+!set TEST_LAST_DEVICE = 0       ; 0: as loaded (see fake_net.asm)
 
 !if SCENARIO = 1 {
 ; PETSCII BBS with Telnet negotiation, typing, line input
@@ -177,7 +178,7 @@ test_keys:
     !byte TK_TYPE, 1, KEY_RETURN    ; no name, no login
     !byte TK_TYPE, 1, KEY_RETURN, TK_TYPE, 1, KEY_RETURN
     !byte "T"
-    !byte "S"
+    !byte "S", TK_TYPE, 1, KEY_RETURN   ; as telnet.cfg
     !byte TK_END
 }
 
@@ -190,7 +191,7 @@ test_rx_end:
 
 !align 255, 0
 test_keys:
-    !byte "S"
+    !byte "S", TK_TYPE, 1, KEY_RETURN   ; as telnet.cfg
     !byte TK_END
 }
 
@@ -701,7 +702,7 @@ test_keys:
     !byte KEY_DOWN, "E", TK_TYPE, 1, KEY_RETURN ; the second keeps its
     !byte TK_TYPE, 4, "A", "N", "S", KEY_RETURN ; host, gets a name
     !byte TK_TYPE, 1, KEY_RETURN, TK_TYPE, 1, KEY_RETURN
-    !byte "S"
+    !byte "S", TK_TYPE, 1, KEY_RETURN   ; as telnet.cfg
     !byte TK_END
 }
 
@@ -719,7 +720,7 @@ test_keys:
     !byte TK_TYPE, 1, KEY_RETURN                ; are, then the login
     !byte TK_TYPE, 4, "K", "I", "M", KEY_RETURN
     !byte TK_TYPE, 7, "S", "E", "C", "R", "E", "T", KEY_RETURN
-    !byte "S"
+    !byte "S", TK_TYPE, 1, KEY_RETURN   ; as telnet.cfg
     !byte KEY_RETURN                            ; connect
     !byte TK_WAIT_RX
     !byte KEY_F4, KEY_F6
@@ -753,6 +754,52 @@ test_keys:
     !byte TK_IDLE, 5
     !byte TK_END
 }
+
+!if SCENARIO = 28 {
+; The drive on the start screen: # steps through drives 8 to 11 and
+; wraps; $ on drive 11, which isn't there
+test_rx:
+    !byte 0
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte "#", "#", "#", "#", "#", "#", "#"
+    !byte "$", "X"
+    !byte TK_END
+}
+
+!if SCENARIO = 29 {
+; Started as if loaded from drive 9, which isn't there: the address book
+; is found on drive 8 (saved by the scenarios before), and drive 8 used
+!set TEST_LAST_DEVICE = 9
+test_rx:
+    !byte 0
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte TK_END
+}
+
+!if SCENARIO = 30 {
+; Saving and loading under another name: the list (from the scenarios
+; before) saved as MINE, an entry deleted, MINE loaded again; then a
+; name that isn't on the disk
+test_rx:
+    !byte 0
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte "S", TK_TYPE, 5, "M", "I", "N", "E", KEY_RETURN
+    !byte "D", "Y"
+    !byte "L", TK_TYPE, 5, "M", "I", "N", "E", KEY_RETURN
+    !byte "L", TK_TYPE, 5, "N", "O", "N", "E", KEY_RETURN
+    !byte TK_END
+}
+
+test_last_device: !byte TEST_LAST_DEVICE
 
 ; Scenarios without a file transfer
 !if TEST_TRANSFERS = 0 {

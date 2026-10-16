@@ -23,6 +23,10 @@
 ; The script and the server's data (test/scenarios.asm) are at
 ; TEST_DATA, after everything the client uses in a test build.
 ;
+;
+; A scenario can set test_last_device to start as if the program had been
+; loaded from that device.
+;
 ; TEST_DONE ($02) is 1 once the script has ended; test_finished is
 ; the routine that sets it and test_tx_pointer points just past the
 ; last logged byte (both for tools/run_test.py).
@@ -51,6 +55,10 @@ net_status: !byte 0
 net_init:
     lda #0
     sta TEST_DONE
+    lda test_last_device    ; as if loaded from another device (book_init
+    beq +                   ; comes after net_init)
+    sta LAST_DEVICE
++   lda #0                  ; Z=1: firmware 2.0.0 or later
     clc
     rts
 
