@@ -925,7 +925,8 @@ book_title_drive:           ; disk_tools.asm's drive_show puts it here
     !pet PET_WHITE, "O", PET_GREEN, "pen other host  "
     !pet PET_WHITE, "_", PET_GREEN, " WiC64 portal", 13
     !pet PET_WHITE, "$", PET_GREEN, " directory  "
-    !pet PET_WHITE, "@", PET_GREEN, " disk command", 13
+    !pet PET_WHITE, "@", PET_GREEN, " disk command  "
+    !pet PET_WHITE, "#", PET_GREEN, " drive", 13
     !pet "Online: ", PET_WHITE, "F1", PET_GREEN, " hang up  "
     !pet PET_WHITE, "F3", PET_GREEN, " type a line", 13
     !pet "        ", PET_WHITE, "F5", PET_GREEN, " echo  "
