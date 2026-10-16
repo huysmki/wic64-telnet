@@ -82,7 +82,8 @@ print_field:
 }
 
 !zone print_number {
-; Prints print_number_value (24 bits) right-aligned in X columns.
+; Prints print_number_value (24 bits) right-aligned in X columns (X = 0:
+; just the digits).
 print_number:
     stx .width
     ldx #0
@@ -131,6 +132,7 @@ print_number:
     lda .width              ; leading spaces
     sec
     sbc .digit_count
+    bcc +                   ; none: wider than .width
     tax
     beq +
 -   lda #" "

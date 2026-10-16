@@ -304,7 +304,7 @@ directory_show:
     sta print_number_value+1
     lda #0
     sta print_number_value+2
-    ldx #5
+    ldx #0                  ; as LIST: the drive pads the name itself
     jsr print_number
     lda #" "
     jsr CHROUT
