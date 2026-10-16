@@ -913,7 +913,7 @@ book_password: !fill .FIELD_MAX + 1, 0
 
 .title:
     !pet PET_RVS_ON, PET_LIGHT_GREEN
-    !pet "  WiC64 Telnet Client 3.3    Drive "
+    !pet "  WiC64 Telnet Client 3.4    Drive "
 book_title_drive:           ; disk_tools.asm's drive_show puts it here
     !pet "8   ", PET_RVS_OFF, 0
 .help:
