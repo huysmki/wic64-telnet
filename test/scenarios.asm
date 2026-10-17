@@ -799,6 +799,63 @@ test_keys:
     !byte TK_END
 }
 
+!if SCENARIO = 31 {
+; Printing a PETSCII screen (F7, P) on the emulated printer at device 4:
+; normal and reverse text, graphics, spaces at the end of a row
+test_rx:
+    !byte $93, $0e                  ; clear, lower/upper case
+    !pet "Printed BBS page", 13
+    !pet "Normal ", $12, "reverse", $92, " normal", 13
+    !byte $05
+    !pet "Numbers 0123456789 and ", $22, "quotes", $22, 13
+    !pet "End of the page.   "
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte KEY_RETURN                ; server 1, PETSCII
+    !byte TK_WAIT_RX
+    !byte KEY_F7, "P"
+    !byte TK_IDLE, 5
+    !byte TK_END
+}
+
+!if SCENARIO = 32 {
+; Printing an 80-column screen (ANSI 80): rows of 80 characters
+test_rx:
+    !text ESC, "[2J", ESC, "[H", "Left", ESC, "[76GRight", 13, 10
+    !text "0123456789012345678901234567890123456789"
+    !text "0123456789012345678901234567890123456789", 13, 10
+    !text ESC, "[7m", "reverse", ESC, "[0m", " and normal", 13, 10
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte KEY_DOWN, "T", "T", "T"   ; server 2 -> ANSI 80
+    !byte KEY_RETURN
+    !byte TK_WAIT_RX
+    !byte KEY_F7, "P"
+    !byte TK_IDLE, 5
+    !byte TK_END
+}
+
+!if SCENARIO = 33 {
+; P without a printer: the session carries on (the border flashes red)
+test_rx:
+    !pet "No printer here", 13
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte KEY_RETURN
+    !byte TK_WAIT_RX
+    !byte KEY_F7, "P"
+    !byte TK_IDLE, 5
+    !byte "X"
+    !byte TK_IDLE, 5
+    !byte TK_END
+}
+
 test_last_device: !byte TEST_LAST_DEVICE
 
 ; Scenarios without a file transfer

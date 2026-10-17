@@ -2,6 +2,7 @@
 """Runs one test build in VICE and writes what it ended up with.
 
     run_test.py <test.prg> <labels> <output.txt> [--disk <d64>] [--png <file>]
+                [--printer <file>]
 
 Starts x64sc (override with $VICE) with the binary monitor, stops at
 test_finished (the scenario's TK_END) and writes a text report: the
@@ -12,7 +13,8 @@ below them), and a checksum of the bitmap the cells are drawn on. `make check` c
 with test/expected/.
 
 For a benchmark build (test/bench.asm) it also prints how many cycles
-the client took for each byte.
+the client took for each byte. --printer puts an emulated printer at
+device 4 that writes the bytes it is sent, unchanged, to that file.
 """
 
 import hashlib
@@ -196,6 +198,13 @@ def main():
         i = args.index("--png")
         png = args[i + 1]
         del args[i:i + 2]
+    printer = None
+    if "--printer" in args:
+        i = args.index("--printer")
+        printer = args[i + 1]
+        del args[i:i + 2]
+        if os.path.exists(printer):
+            os.remove(printer)
     prg, labels_path, output = args
     labels = read_labels(labels_path)
     port = free_port()
@@ -208,6 +217,9 @@ def main():
         command += ["-8", disk]
     if png:
         command += ["-exitscreenshot", png]
+    if printer:
+        command += ["-busdevice4", "-devicebackend4", "1", "-pr4drv", "raw",
+                    "-pr4output", "text", "-pr4txtdev", "0", "-prtxtdev1", printer]
     command += ["-autostart", prg]
 
     # its own process group: macOS builds start x64sc through a wrapper script

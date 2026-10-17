@@ -1,5 +1,5 @@
 ;---------------------------------------------------------
-; WiC64 Telnet Client 3.4
+; WiC64 Telnet Client 3.5
 ;
 ; Build:       acme -f cbm -o telnet.prg main.asm
 ; Test build:  acme -f cbm -DTEST=1 -DSCENARIO=<n> -o test.prg main.asm
@@ -20,6 +20,7 @@
 ;   disk_tools.asm the start screen's directory and drive (under I/O)
 ;   ui.asm        printing, popup boxes, line input, clock
 ;   crash.asm     RUN/STOP + RESTORE: where the client was
+;   print.asm     printing the screen
 ;---------------------------------------------------------
 
 !ifndef TEST {
@@ -134,6 +135,7 @@ high_part_load:
 !src "scrollback.asm"
 !src "book.asm"
 !src "xfer.asm"
+!src "print.asm"
 }
 high_part_end:
 HIGH_PAGES = (high_part_end - high_part_load + $ff) >> 8

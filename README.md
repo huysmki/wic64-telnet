@@ -1,4 +1,4 @@
-# WiC64 Telnet Client 3.4
+# WiC64 Telnet Client 3.5
 
 A Telnet client for the Commodore 64 with a WiC64 (firmware 2.0.0 or later).
 
@@ -74,9 +74,15 @@ editing, the C64 screen editor overwrites text; use `INST` to insert.
 
 Online: `F1` hang up, `F3` type a whole line (up to 80 characters),
 `F4` send the user name and `F6` the password (each followed by `RETURN`, as
-if typed), `F5` local echo on/off, `F7` session menu (mode, echo,
-scrollback, file download, Telnet break / interrupt / are-you-there, hang
-up), `SHIFT F7` scrollback.
+if typed), `F5` local echo on/off, `F7` session menu (mode, echo, print the
+screen, scrollback, file download, Telnet break / interrupt /
+are-you-there, hang up), `SHIFT F7` scrollback.
+
+`F7` then `P` prints the screen on a printer at device 4 on the serial bus
+(a Commodore printer, or an interface that behaves as one; the user port is
+taken by the WiC64): its rows as text, 80 characters wide in 80 columns, in
+the case the screen shows, with reverse video. The border flashes green once
+it is printed, red if no printer answers.
 `RUN/STOP`+`RESTORE` shows the crash report (see
 [If the client hangs](#if-the-client-hangs)); a key then goes to BASIC, where
 `RUN` starts the client again.
@@ -293,6 +299,7 @@ to the `telnet.prg` download.
 | `disk_tools.asm` | the start screen's disk directory, choice of drive, and saving and loading the address book |
 | `xfer.asm` | file downloads: XMODEM and Punter |
 | `ui.asm` | printing, popup boxes, line input, clock |
+| `print.asm` | printing the screen on a printer (`F7`, `P`) |
 | `crash.asm`, `crash_report.asm` | `RUN/STOP` + `RESTORE`: the crash report |
 | `test/` | fake network, scripted scenarios, expected results |
 | `tools/` | `run_test.py`: runs a test build in VICE for `make check` and `make bench`; `bench_data.py`: the benchmark's data; `test_bbs.py`, `telnet_proxy.py`, `byte_flood_server.py`: servers to test the client against (see [Testing](#testing)) |
@@ -319,13 +326,14 @@ screen's disk tools to `$DB00`; the start screen works on copies of them, at
 
 ## Testing
 
-`make test` builds `build/test1.prg` … `build/test30.prg`. In these the WiC64
+`make test` builds `build/test1.prg` … `build/test33.prg`. In these the WiC64
 is replaced by a fake server that plays back a script, and keys come from a
 script too (`test/scenarios.asm`): PETSCII with Telnet negotiation, ANSI BBS
 output, UTF-8 host output, address book editing, line input, a network error,
 saving and loading `telnet.cfg` (also ones saved by older versions), the
 login keys, the disk directory, a disk command, choosing the drive and
-starting from another one, saving and loading under another name, switching to ANSI (or not, for BBSes that
+starting from another one, saving and loading under another name, printing
+the screen (on VICE's emulated printer, which writes to a file), switching to ANSI (or not, for BBSes that
 only probe for it), a server that stops echoing, the scrollback
 (with a 1 KB buffer, so that it fills up), 80 columns, and the finer points
 of the ANSI and UTF-8 modes. Run one in VICE and look at the screen; what the
