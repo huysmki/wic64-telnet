@@ -70,7 +70,8 @@ book_init:
     jmp drive_init
 
 ; Loads the file named with SETNAM (disk_tools.asm's file_name) from
-; disk_device into the list. Returns C=0 if it was there.
+; disk_device into the list. Returns C=0 if it was there; else A = 0 if
+; it is there but isn't an address book, or the KERNAL's error.
 book_load:
     lda #0
     jsr SETMSG              ; no KERNAL "SEARCHING/LOADING" messages
@@ -82,7 +83,7 @@ book_load:
     ldx #<book_load_buffer
     ldy #>book_load_buffer
     jsr LOAD
-    bcs .load_done
+    bcs .load_failed
     stx .loaded_end
     sty .loaded_end+1
     ldx #.MAGIC_LENGTH-2    ; "WTB", then the version
@@ -111,7 +112,9 @@ book_load:
     sta .loaded_entry_size
     jmp .convert
 .load_done:
+    lda #0
     sec
+.load_failed:
     rts
 
 ; Puts the loaded file into the list, entry by entry, and keeps it.

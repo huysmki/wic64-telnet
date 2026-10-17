@@ -6,19 +6,19 @@ C1541 ?= $(if $(VICE_BIN),$(VICE_BIN)/c1541,c1541)
 SOURCES = main.asm defs.asm ui.asm net.asm receive.asm telnet.asm term.asm ansi.asm scrollback.asm screen80.asm \
           charmaps.asm session.asm book.asm xfer.asm crash.asm crash_report.asm disk_tools.asm print.asm \
           wic64.h wic64.asm
-SCENARIOS = 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33
-DISK_SCENARIOS = 7 8 20 21 22 23 24 25 26 27 29 30 26 27
+SCENARIOS = 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35
+DISK_SCENARIOS = 7 8 20 21 22 23 24 25 26 27 29 30 34 35
 # Files the download scenarios save on the test disk: name:expected .bin
 DOWNLOADS = xmts:test20 punt,s:test21 auto,s:test22 one,s:test23a two:test23b
 # Files put on the test disk just before a scenario: scenario:name:file
 DISK_FILES = 24:telnet.cfg:build/wtb1.cfg 25:telnet.cfg:build/wtb2.cfg \
-             27:junk:build/wtb1.cfg
+             27:junk:build/wtb1.cfg 35:telnet.cfg:build/wtbx.cfg
 # Scenarios with an emulated printer at device 4: what it printed is
 # compared with test/expected/test<n>.printed
 PRINTER_SCENARIOS = 31 32
 # Files read from the test disk just after a scenario, compared with
 # their .bin: scenario:name:expected
-SAVED_FILES = 24:telnet.cfg:test24 25:telnet.cfg:test25 30:mine:test30
+SAVED_FILES = 24:telnet.cfg:test24 25:telnet.cfg:test25 30:mine:test30 34:kff:test34
 
 build/telnet.prg: $(SOURCES)
 	@mkdir -p build
@@ -53,7 +53,7 @@ build/wtb%.cfg: test/wtb%.asm
 # Runs every test build in VICE and compares the screen and what was
 # sent with test/expected/, and the downloaded files with their .bin.
 # Screenshots end up in build/test<n>.png.
-check: test build/wtb1.cfg build/wtb2.cfg
+check: test build/wtb1.cfg build/wtb2.cfg build/wtbx.cfg
 	@$(C1541) -format "test,01" d64 build/test.d64 >/dev/null
 	@fail=0; for n in $(SCENARIOS); do \
 	    disk=; case " $(DISK_SCENARIOS) " in *" $$n "*) disk="--disk build/test.d64";; esac; \

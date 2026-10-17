@@ -27,6 +27,10 @@
 ; A scenario can set test_last_device to start as if the program had been
 ; loaded from that device.
 ;
+; A scenario can set test_no_rename to take over the KERNAL's OPEN, as
+; Kung Fu Flash does, and answer a rename on the command channel with
+; OK without renaming, as Kung Fu Flash's drive does.
+;
 ; TEST_DONE ($02) is 1 once the script has ended; test_finished is
 ; the routine that sets it and test_tx_pointer points just past the
 ; last logged byte (both for tools/run_test.py).
@@ -58,9 +62,36 @@ net_init:
     lda test_last_device    ; as if loaded from another device (book_init
     beq +                   ; comes after net_init)
     sta LAST_DEVICE
++   lda test_no_rename
+    beq +
+    lda #<.open_no_rename
+    sta $031a
+    lda #>.open_no_rename
+    sta $031b
 +   lda #0                  ; Z=1: firmware 2.0.0 or later
     clc
     rts
+
+; OPEN, with a command R... on channel 15 replaced by I (initialize),
+; which does nothing here and reports 00, OK
+.open_no_rename:
+    lda $b9                 ; the secondary address
+    cmp #15
+    bne +
+    lda $b7                 ; the name's length
+    beq +
+    ldy #0
+    lda ($bb),y
+    cmp #"R"
+    bne +
+    lda #1
+    sta $b7
+    lda #<.initialize
+    sta $bb
+    lda #>.initialize
+    sta $bc
++   jmp $f34a
+.initialize: !byte $49     ; "I" (!pet would shift it)
 
 net_open:
     lda #<test_rx
