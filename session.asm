@@ -242,13 +242,7 @@ session_run:
     jsr clock_format
     +print clock_text
     +plot 1, 20
-    +print .menu_line1
-    +plot 1, 21
-    +print .menu_line2
-    +plot 1, 22
-    +print .menu_line3
-    +plot 1, 23
-    +print .menu_line4
+    +print .menu_lines
 
     jsr wait_key
     pha
@@ -276,6 +270,11 @@ session_run:
 +   cmp #"D"
     bne +
     jsr xfer_download
+    clc
+    rts
++   cmp #"P"
+    bne +
+    jsr print_screen
     clc
     rts
 +   ldx #.COMMAND_COUNT-1
@@ -403,13 +402,15 @@ session_run:
 .echo_label:      !pet PET_GREEN, "Echo ", PET_WHITE, 0
 .on_text:         !pet "on", 0
 .off_text:        !pet "off", 0
-.menu_line1:      !pet PET_WHITE, "M", PET_GREEN, " next mode    "
-                  !pet PET_WHITE, "E", PET_GREEN, " local echo", 0
-.menu_line2:      !pet PET_WHITE, "S", PET_GREEN, " scrollback   "
-                  !pet PET_WHITE, "H", PET_GREEN, " hang up", 0
-.menu_line3:      !pet PET_WHITE, "B", PET_GREEN, " send break   "
-                  !pet PET_WHITE, "I", PET_GREEN, " interrupt", 0
-.menu_line4:      !pet PET_WHITE, "D", PET_GREEN, " download     "
+.menu_lines:      ; one row each (the box's rows are lines of their own)
+                  !pet PET_WHITE, "M", PET_GREEN, " next mode    "
+                  !pet PET_WHITE, "E", PET_GREEN, " local echo   "
+                  !pet PET_WHITE, "P", PET_GREEN, " print", 13, " "
+                  !pet PET_WHITE, "S", PET_GREEN, " scrollback   "
+                  !pet PET_WHITE, "H", PET_GREEN, " hang up", 13, " "
+                  !pet PET_WHITE, "B", PET_GREEN, " send break   "
+                  !pet PET_WHITE, "I", PET_GREEN, " interrupt", 13, " "
+                  !pet PET_WHITE, "D", PET_GREEN, " download     "
                   !pet PET_WHITE, "A", PET_GREEN, " are you there", 0
 .retry_prompt:    !pet PET_YELLOW, "F1 ", PET_RED, "Abort  "
                   !pet PET_YELLOW, "F3 ", PET_RED, "Retry", 0

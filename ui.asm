@@ -374,13 +374,15 @@ box_close:
 ;---------------------------------------------------------
 
 !zone disk_present {
-; Returns C=1 if disk_device doesn't answer on the serial bus. The
-; KERNAL notices a missing drive when it sends to it, but waits for ever
-; for one to talk while another drive is on the bus.
+; Returns C=1 if disk_device (or for device_present, device A) doesn't
+; answer on the serial bus. The KERNAL notices a missing drive when it
+; sends to it, but waits for ever for one to talk while another drive
+; is on the bus.
 disk_present:
-    lda #0
-    sta .STATUS
     lda disk_device
+device_present:
+    ldx #0
+    stx .STATUS
     jsr .LISTEN
     lda #$6f                ; channel 15
     jsr .SECOND
