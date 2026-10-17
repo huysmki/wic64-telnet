@@ -1,4 +1,4 @@
-# WiC64 Telnet Client 3.4
+# WiC64 Telnet Client 3.5
 
 A Telnet client for the Commodore 64 with a WiC64 (firmware 2.0.0 or later).
 
