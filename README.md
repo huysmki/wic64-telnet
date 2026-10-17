@@ -260,7 +260,10 @@ to UTF-8 80; in UTF-8 its longer lines wrap onto two rows.
 The list is stored in `telnet.cfg` on the drive shown on the start screen (see
 [Disk directory and commands](#disk-directory-and-commands)). It is loaded
 at start-up and written when you press `S`: first as `telnet.tmp`, which then
-replaces `telnet.cfg`, so a failed save leaves the old list on the disk. `S`
+replaces `telnet.cfg`, so a failed save leaves the old list on the disk.
+Drives that cannot rename files, such as Kung Fu Flash's, get the list
+under its name directly. If `telnet.cfg` is there but is not an address book
+(damaged, or another file under that name), the start screen says so. `S`
 and `L` ask for a file name, so you can keep more lists (`L` loads one; with
 `#` first, from another drive). `RETURN` on its own keeps the name shown,
 `telnet.cfg` to begin with; the client remembers the last one until it is

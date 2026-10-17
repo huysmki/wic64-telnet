@@ -11,6 +11,7 @@ ESC = $1b
 ; true in ACME's first pass only, and the bytes would not be there.)
 !set TEST_TRANSFERS = 0
 !set TEST_LAST_DEVICE = 0       ; 0: as loaded (see fake_net.asm)
+!set TEST_NO_RENAME = 0
 
 !if SCENARIO = 1 {
 ; PETSCII BBS with Telnet negotiation, typing, line input
@@ -856,7 +857,37 @@ test_keys:
     !byte TK_END
 }
 
+!if SCENARIO = 34 {
+; Saving to a drive that answers a rename with OK but doesn't rename,
+; such as Kung Fu Flash's, which also takes over the KERNAL's OPEN: the
+; list is saved under its name all the same, and no TELNET.TMP is left
+; (the directory)
+!set TEST_NO_RENAME = 1
+test_rx:
+    !byte 0
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte "S", TK_TYPE, 4, "K", "F", "F", KEY_RETURN
+    !byte "$"
+    !byte TK_END
+}
+
+!if SCENARIO = 35 {
+; Start-up with a telnet.cfg that isn't an address book (test/wtbx.asm):
+; the default list, and the start screen says why
+test_rx:
+    !byte 0
+test_rx_end:
+
+!align 255, 0
+test_keys:
+    !byte TK_END
+}
+
 test_last_device: !byte TEST_LAST_DEVICE
+test_no_rename:   !byte TEST_NO_RENAME
 
 ; Scenarios without a file transfer
 !if TEST_TRANSFERS = 0 {

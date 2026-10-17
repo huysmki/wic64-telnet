@@ -16,7 +16,9 @@
 ;
 ; Saving writes the list as telnet.tmp first and only gives it the
 ; name once it is on the disk completely, so that a failed save leaves
-; the old file alone.
+; the old file alone. A drive that can't rename (Kung Fu Flash's answers
+; R with OK and does nothing) still has telnet.tmp afterwards: then the
+; list is saved under its name directly.
 ;
 ; This code only runs on the start screen. It is kept in the RAM under
 ; the I/O area (BOOK_OVERLAY_STORE) and copied to BOOK_OVERLAY with the
@@ -37,23 +39,48 @@ drive_init:
 .eight:
     lda #8
 +   sta disk_device
-    jsr .load
+    jsr .load_at_start
     bcc .found
     lda #8                  ; not there: drive 8, the usual one
     cmp disk_device
     beq .found
     sta disk_device
-    jmp .load
+    jmp .load_at_start
 .found:
     rts
 
-; Loads book_file_name. Returns C=0 if it was there.
+; .load, and if the file is there but isn't an address book, the start
+; screen says so (no file is no news: there is none until the first S).
+.load_at_start:
+    jsr .load
+    bcc +
+    cpx #0
+    bne +
+    lda #<.no_book_at_start
+    sta book_message
+    lda #>.no_book_at_start
+    sta book_message+1
++   rts
+
+; Loads book_file_name. Returns C=0 if it was there; else A/Y = the
+; message why not, and X = 0 if the file is there but isn't an address
+; book.
 .load:
     jsr .name_length
     ldx #<book_file_name
     ldy #>book_file_name
     jsr SETNAM
-    jmp book_load
+    jsr book_load
+    bcc .loaded_now
+    tax
+    beq +
+    lda #<.not_loaded
+    ldy #>.not_loaded
+    rts
++   lda #<.not_a_book
+    ldy #>.not_a_book
+.loaded_now:
+    rts
 
 ; Returns the length of book_file_name in A.
 .name_length:
@@ -139,8 +166,6 @@ drive_load_key:
     jsr .show_busy
     jsr .load
     bcc +
-    lda #<.not_loaded
-    ldy #>.not_loaded
     jmp book_show_message
 +   lda #0                  ; the list may be shorter now
     sta book_selected
@@ -164,30 +189,13 @@ save_key:
     jmp book_draw_message
 ; Returns A/Y = the message to show.
 .save:
-    lda #.scratch_tmp_length ; left over from an earlier failed save
-    ldx #<.scratch_tmp
-    ldy #>.scratch_tmp
-    jsr disk_command
+    jsr .remove_tmp         ; left over from an earlier failed save
     bcs .disk_failed
     lda #.tmp_length
     ldx #<.tmp
     ldy #>.tmp
-    jsr SETNAM
-    lda #1
-    ldx disk_device
-    ldy #0
-    jsr SETLFS
-    lda #<BOOK_LIST
-    sta zp_a
-    lda #>BOOK_LIST
-    sta zp_a+1
-    lda #zp_a
-    ldx #<(BOOK_LIST + BOOK_FILE_SIZE)
-    ldy #>(BOOK_LIST + BOOK_FILE_SIZE)
-    jsr SAVE
-    bcs .kernal_error
-    jsr disk_read_status
-    bcs .drive_error
+    jsr .save_as
+    bcs .disk_failed
     lda #"S"                ; S0:name, then R0:name=TELNET.TMP
     jsr .command
     jsr .send_command
@@ -204,6 +212,16 @@ save_key:
     txa
     jsr .send_command
     bcs .disk_failed
+    jsr .remove_tmp         ; a drive without R (Kung Fu Flash) reports
+    bcs .disk_failed        ; OK but leaves TELNET.TMP: then the list is
+    jsr .scratched_any      ; saved under its name after all (the old
+    bcc .saved_message      ; file is scratched already)
+    jsr .name_length
+    ldx #<book_file_name
+    ldy #>book_file_name
+    jsr .save_as
+    bcs .disk_failed
+.saved_message:
     lda #<.saved
     ldy #>.saved
     rts
@@ -223,6 +241,62 @@ save_key:
     rts
 +   lda #<.disk_error
     ldy #>.disk_error
+    rts
+
+; Saves the list as the file named A, X/Y (length, address). Returns
+; C=1 on failure as disk_command does.
+.save_as:
+    jsr SETNAM
+    lda #1
+    ldx disk_device
+    ldy #0
+    jsr SETLFS
+    lda #<BOOK_LIST
+    sta zp_a
+    lda #>BOOK_LIST
+    sta zp_a+1
+    lda #zp_a
+    ldx #<(BOOK_LIST + BOOK_FILE_SIZE)
+    ldy #>(BOOK_LIST + BOOK_FILE_SIZE)
+    jsr SAVE
+    bcc +
+    ldx #0                  ; Z=1: A = KERNAL error
+    rts
++   jsr disk_read_status
+    lda #1                  ; Z=0: the drive's status
+    rts
+
+.remove_tmp:
+    lda #.scratch_tmp_length
+    ldx #<.scratch_tmp
+    ldy #>.scratch_tmp
+    jmp disk_command
+
+; Returns C=1 if the scratch in disk_status removed a file: its third
+; field, the count, is not 0 ("01, FILES SCRATCHED,01,00").
+.scratched_any:
+    ldx #0
+    ldy #2                  ; to after the second comma
+-   lda disk_status,x
+    beq .none
+    inx
+    cmp #","
+    bne -
+    dey
+    bne -
+-   lda disk_status,x
+    beq .none
+    cmp #","
+    beq .none
+    inx
+    cmp #"1"
+    bcc -
+    cmp #$3a                ; "9" + 1
+    bcs -
+    sec                     ; a digit from 1 to 9
+    rts
+.none:
+    clc
     rts
 
 ; Sends .command_text, A bytes long, to the drive.
@@ -253,6 +327,8 @@ save_key:
 .no_message: !byte 0
 .loaded:     !pet "Loaded.", 0
 .not_loaded: !pet "Not found on this drive.", 0
+.not_a_book: !pet "Not loaded: not an address book.", 0
+.no_book_at_start: !pet "telnet.cfg is not an address book.", 0
 .loading:    !pet "Loading...", 0
 .saving:     !pet "Saving...", 0
 .saved:      !pet "Saved.", 0

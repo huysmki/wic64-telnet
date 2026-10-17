@@ -378,8 +378,16 @@ box_close:
 ; answer on the serial bus. The KERNAL notices a missing drive when it
 ; sends to it, but waits for ever for one to talk while another drive
 ; is on the bus.
+; A cartridge that emulates a drive itself, such as Kung Fu Flash, takes
+; over the KERNAL's OPEN: its drive isn't on the bus, so disk_present
+; then leaves it to the KERNAL (C=0).
 disk_present:
-    lda disk_device
+    lda .IOPEN+1
+    cmp #>.KERNAL_OPEN
+    beq +
+    clc
+    rts
++   lda disk_device
 device_present:
     ldx #0
     stx .STATUS
@@ -394,6 +402,8 @@ device_present:
 .LISTEN = $ffb1
 .SECOND = $ff93
 .UNLSN  = $ffae
+.IOPEN  = $031a
+.KERNAL_OPEN = $f34a
 }
 
 !zone ui_input {
